@@ -1,0 +1,21 @@
+name: tests
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install -r requirements.txt
+      - run: python -m unittest discover -s tests -t . -v
+        env: { TT_HOME: /tmp/tt-ci }
+      - name: Lint shell scripts
+        run: bash -n install.sh && zsh -n bin/tt
+      - name: Demo data + dashboard smoke test
+        env: { TT_HOME: /tmp/tt-ci-demo, TT_PORT: "8399" }
+        run: |
+          python -m timetracker.demo --fresh
+          python -m uvicorn timetracker.dashboard:app --port 8399 &
+          for i in $(seq 30); do curl -sf http://127.0.0.1:8399/api/project_report >/dev/null && break; sleep 1; done
+          curl -sf http://127.0.0.1:8399/api/project_report | python -c "import json,sys; assert len(json.load(sys.stdin)) >= 4"

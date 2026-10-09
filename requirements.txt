@@ -1,0 +1,7 @@
+fastapi>=0.115
+uvicorn>=0.30
+pydantic>=2.7
+anthropic>=0.60
+pyobjc-framework-Cocoa>=10.3
+pyobjc-framework-Quartz>=10.3
+pyobjc-framework-ApplicationServices>=10.3

@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+*.db
+*.db-wal
+*.db-shm
+config.json
+/docs/media/raw/

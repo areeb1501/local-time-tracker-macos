@@ -1,0 +1,82 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+html,body{margin:0;background:#e9e7f2;height:100%}
+body{display:flex;align-items:center;justify-content:center;font-family:"SF Mono",Menlo,monospace}
+.win{width:1060px;height:640px;background:#16161e;border-radius:12px;box-shadow:0 24px 60px rgba(30,20,60,.35);overflow:hidden;display:flex;flex-direction:column}
+.bar{height:34px;background:#24242e;display:flex;align-items:center;padding:0 14px;gap:8px;position:relative}
+.dot{width:12px;height:12px;border-radius:50%}
+.ttl{position:absolute;left:0;right:0;text-align:center;color:#8b8ba0;font:13px -apple-system,system-ui}
+#t{flex:1;padding:16px 20px;color:#d6d6e0;font-size:14.5px;line-height:1.5;white-space:pre-wrap;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end}
+.b{font-weight:700;color:#fff}.d{color:#6e6e85}.g{color:#4ade80}.c{color:#67e8f9}.y{color:#facc15}.p{color:#c084fc}
+.cur{display:inline-block;width:8px;height:17px;background:#d6d6e0;vertical-align:-3px;animation:bl 1s steps(1) infinite}
+@keyframes bl{50%{opacity:0}}
+</style></head><body>
+<div class="win"><div class="bar"><span class="dot" style="background:#ff5f57"></span><span class="dot" style="background:#febc2e"></span><span class="dot" style="background:#28c840"></span><div class="ttl">alex — zsh — 120×32</div></div><div id="t"></div></div>
+<script>
+const T=document.getElementById('t');
+const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;');
+// markup: {g:text} -> span class
+const fmt=s=>esc(s).replace(/\{(\w):([^}]*)\}/g,(_,c,x)=>`<span class="${c}">${x}</span>`);
+let buf='';
+const render=(extra='')=>{T.innerHTML='<div>'+buf+extra+'<span class="cur"></span></div>';};
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+async function line(s,ms=90){buf+=fmt(s)+'\n';render();await sleep(ms);}
+async function type(prefix,text,speed=38){buf+=fmt(prefix);for(const ch of text){buf+=esc(ch);render();await sleep(speed);}await sleep(250);buf+='\n';render();}
+async function run(){
+  render(); await sleep(500);
+  await type('{p:~} {g:❯} ','curl -fsSL https://raw.githubusercontent.com/areeb1501/local-time-tracker-macos/main/install.sh | bash',22);
+  await sleep(300);
+  await line('');
+  await line('{b:  ⏱  Local Time Tracker} {d:— installer}');
+  await line('');
+  await line('  {g:✓} macOS 15.6',220);
+  await line('  {g:✓} Python 3.12.7  {d:(/opt/homebrew/bin/python3.12)}',260);
+  await line('  {g:✓} downloaded areeb1501/local-time-tracker-macos → {d:/Users/alex/.local/share/local-time-tracker}',500);
+  await line('  {g:✓} dependencies installed {d:(FastAPI, uvicorn, pyobjc — in a private venv)}',700);
+  await line('  {g:✓} command {b:tt} → /Users/alex/.local/bin/tt',300);
+  await line('');
+  await line('{b:  ⏱  Local Time Tracker} {d:— setup}');
+  await line('  Everything you track stays in {c:/Users/alex/.timetracker} on this Mac.');
+  await line('  Every step is optional — press Enter to accept the default.',500);
+  await line('');
+  await line('{b:1. Tracking}');
+  await type('{c:?} Idle minutes before AFK {d:[5]} ','5');
+  await line('');
+  await line('{b:2. Projects}');
+  await type('{c:?} Project name (Enter to finish) ','Acme Storefront');
+  await type('{c:?}   Keyword or folder for {b:Acme Storefront} (e.g. acme or ~/code/acme) ','~/code/acme-storefront');
+  await line('  {g:✓} Acme Storefront');
+  await type('{c:?} Project name (Enter to finish) ','MSc Thesis');
+  await type('{c:?}   Keyword or folder for {b:MSc Thesis} (e.g. acme or ~/code/acme) ','overleaf');
+  await line('  {g:✓} MSc Thesis');
+  await type('{c:?} Project name (Enter to finish) ','');
+  await line('');
+  await line('{b:3. AI (optional)}');
+  await line('    1) Claude (Anthropic)   2) Gemini   3) Ollama — fully local   4) skip');
+  await type('{c:?} Choose {d:[4]} ','1');
+  await type('{c:?} Anthropic API key (console.anthropic.com) {d:(input hidden, Enter to skip)} ','',10);
+  buf=buf.replace(/\n$/,'');await sleep(200);for(let i=0;i<12;i++){buf+='•';render();await sleep(45);}buf+='\n';render();
+  await line('');
+  await line('{b:4. Email briefs (optional)}');
+  await type('{c:?} Set up email briefs? {d:(y/N)} ','y');
+  await type('{c:?} Resend API key {d:(input hidden, Enter to skip)} ','',10);
+  buf=buf.replace(/\n$/,'');for(let i=0;i<12;i++){buf+='•';render();await sleep(45);}buf+='\n';render();
+  await type('{c:?} Send briefs to ','alex@example.com');
+  await type('{c:?} Email me a weekly brief every Monday 8am? {d:(Y/n)} ','y');
+  await line('');
+  await line('  {g:✓} saved /Users/alex/.timetracker/config.json {d:(chmod 600)}',400);
+  await line('');
+  await line('{b:5. macOS permissions}');
+  await line('  {d:Grant Accessibility to this Python binary — macOS asks once per browser for tab URLs.}');
+  await type('{c:?} Open Accessibility settings now? {d:(Y/n)} ','y');
+  await line('  {d:(path copied to the clipboard)}',500);
+  await line('');
+  await line('{g:  All set.} Tracking runs in the background and starts at login.');
+  await line('  Dashboard  {c:http://127.0.0.1:8321}   ·   {b:tt open}',300);
+  await line('');
+  await line('{g:●} tracking in the background — dashboard at {c:http://127.0.0.1:8321}');
+  await line('  {d:starts automatically at login · tt stop to pause · tt status to check}');
+  buf+=fmt('{p:~} {g:❯} ');render();
+  await sleep(2500); window.DONE=true;
+}
+run();
+</script></body></html>

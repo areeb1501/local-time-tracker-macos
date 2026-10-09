@@ -1,0 +1,213 @@
+#!/bin/zsh
+# tt — control script for Local Time Tracker (macOS)
+#   tt setup | start | stop | restart | status | info | open | log | report | demo | update | uninstall
+#
+# Environment overrides (handy for running an isolated second copy):
+#   TT_HOME   data dir          (default ~/.timetracker)
+#   TT_PORT   dashboard port    (default 8321)
+#   TT_LABEL  launchd prefix    (default io.github.localtimetracker)
+
+# Resolve the real install dir even when called through a symlink (~/.local/bin/tt):
+# this script lives in <app>/bin, the Python package in <app>/timetracker.
+DIR="${0:A:h:h}"
+PY="$DIR/.venv/bin/python"
+export PYTHONPATH="$DIR${PYTHONPATH:+:$PYTHONPATH}"
+mod() { "$PY" -m "timetracker.$1" "${@:2}" }
+DATA="${TT_HOME:-$HOME/.timetracker}"
+DB="$DATA/events.db"
+PORT="${TT_PORT:-8321}"
+LABEL="${TT_LABEL:-io.github.localtimetracker}"
+LA="$HOME/Library/LaunchAgents"
+U=$(id -u)
+AGENTS=("$LABEL.collector" "$LABEL.dashboard" "$LABEL.weekly")
+REPO="${TT_REPO:-areeb1501/local-time-tracker-macos}"
+
+B=$'\e[1m'; D=$'\e[2m'; G=$'\e[32m'; R=$'\e[31m'; C=$'\e[36m'; X=$'\e[0m'
+[[ -t 1 ]] || { B=; D=; G=; R=; C=; X=; }
+
+xml() { print -r -- "${1//&/&amp;}" | sed 's/</\&lt;/g; s/>/\&gt;/g' }
+
+# --- launchd plists are rendered from here, so paths always match this install ---
+plist() {  # plist <label> <log> <extra-xml> <args...>
+  local label=$1 log=$2 extra=$3; shift 3
+  print -r -- '<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key><string>'"$label"'</string>
+    <key>ProgramArguments</key>
+    <array>'
+  for a in "$@"; do print -r -- "        <string>$(xml "$a")</string>"; done
+  print -r -- '    </array>
+    <key>WorkingDirectory</key><string>'"$(xml "$DIR")"'</string>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>TT_HOME</key><string>'"$(xml "$DATA")"'</string>
+        <key>TT_PORT</key><string>'"$PORT"'</string>
+        <key>PYTHONPATH</key><string>'"$(xml "$DIR")"'</string>
+    </dict>
+'"$extra"'
+    <key>StandardOutPath</key><string>'"$(xml "$DATA/$log")"'</string>
+    <key>StandardErrorPath</key><string>'"$(xml "$DATA/$log")"'</string>
+</dict>
+</plist>'
+}
+
+render_plists() {
+  mkdir -p "$LA" "$DATA"
+  local keep='    <key>RunAtLoad</key><true/>
+    <key>KeepAlive</key><true/>
+    <key>ThrottleInterval</key><integer>10</integer>'
+  # Collector stays Background (resource budget). The dashboard must be
+  # Interactive: Background pins uvicorn to efficiency cores, ~4-5x slower.
+  local bg='    <key>ProcessType</key><string>Background</string>
+    <key>LowPriorityIO</key><true/>'
+  plist "$LABEL.collector" collector.log "$keep
+$bg" "$PY" -m timetracker.collector > "$LA/$LABEL.collector.plist"
+  plist "$LABEL.dashboard" dashboard.log "$keep
+    <key>ProcessType</key><string>Interactive</string>" "$PY" -m uvicorn timetracker.dashboard:app --app-dir "$DIR" \
+        --host 127.0.0.1 --port "$PORT" --log-level warning > "$LA/$LABEL.dashboard.plist"
+  plist "$LABEL.weekly" report.log "$bg"'
+    <key>StartCalendarInterval</key>
+    <dict><key>Weekday</key><integer>1</integer><key>Hour</key><integer>8</integer><key>Minute</key><integer>0</integer></dict>' \
+        "$PY" -m timetracker.report --period week > "$LA/$LABEL.weekly.plist"
+}
+
+# Load/unload the Monday email agent to match `weekly_email`, but only if tracking is on.
+sync_weekly() {
+  [[ -n $(running "$LABEL.collector") ]] || return 0
+  render_plists
+  if grep -q '"weekly_email": *true' "$DATA/config.json" 2>/dev/null; then
+    launchctl bootstrap "gui/$U" "$LA/$LABEL.weekly.plist" 2>/dev/null
+  else
+    launchctl bootout "gui/$U/$LABEL.weekly" 2>/dev/null
+  fi
+  return 0
+}
+
+running() { launchctl list 2>/dev/null | awk -v l="$1" '$3==l && $1!="-"{print $1}' }
+up()      { curl -s -o /dev/null -m 2 "http://127.0.0.1:$PORT/" }
+
+do_start() {
+  render_plists
+  local a
+  for a in $AGENTS; do
+    if [[ $a == *.weekly ]] && ! grep -q '"weekly_email": *true' "$DATA/config.json" 2>/dev/null; then
+      launchctl bootout "gui/$U/$a" 2>/dev/null; continue
+    fi
+    launchctl bootout "gui/$U/$a" 2>/dev/null
+    launchctl bootstrap "gui/$U" "$LA/$a.plist" 2>/dev/null || launchctl kickstart -k "gui/$U/$a"
+  done
+  local i; for i in {1..20}; do up && break; sleep 0.3; done
+  echo "${G}●${X} tracking in the background — dashboard at ${C}http://127.0.0.1:$PORT${X}"
+  echo "  ${D}starts automatically at login · tt stop to pause · tt status to check${X}"
+}
+
+case "$1" in
+  setup|onboard|init)
+    shift
+    mod onboard "$@" || exit $?
+    [[ " $* " == *" --no-start "* ]] || do_start
+    ;;
+  config|settings|set)
+    [[ $1 == set ]] || shift
+    case "$1" in
+      email|resend|mail) mod onboard --only email || exit $?;;
+      ai|tracking|projects|permissions) mod onboard --only "$1" || exit $?;;
+      test-email|test) mod onboard --test-email; exit $?;;
+      *) mod config "$@" || exit $?;;
+    esac
+    sync_weekly;;
+  start)   do_start;;
+  stop)
+    for a in $AGENTS; do launchctl bootout "gui/$U/$a" 2>/dev/null; done
+    echo "stopped — no tracking until ${B}tt start${X}";;
+  restart)
+    render_plists
+    for a in $AGENTS; do launchctl kickstart -k "gui/$U/$a" 2>/dev/null; done
+    echo "restarted";;
+  status)
+    PID=$(running "$LABEL.collector")
+    if [[ -n $PID ]]; then
+      printf "${G}●${X} collector  running  %s\n" "$(ps -o rss=,%cpu= -p $PID | awk '{printf "pid '"$PID"' · %.0f MB · %s%% cpu", $1/1024, $2}')"
+    else
+      echo "${R}●${X} collector  not running   → tt start"
+    fi
+    if up; then echo "${G}●${X} dashboard  http://127.0.0.1:$PORT"
+    else echo "${R}●${X} dashboard  not responding → tt restart"; fi
+    sqlite3 "$DB" "SELECT '  today      ' || printf('%.1f', COALESCE(SUM(end_ts-start_ts),0)/3600.0) || ' h tracked' FROM events WHERE is_afk=0 AND start_ts > strftime('%s','now','start of day','localtime');" 2>/dev/null;;
+  open|db|dash|dashboard)
+    open "http://127.0.0.1:$PORT";;
+  log|logs)
+    tail -f "$DATA/collector.log";;
+  report|brief)
+    shift; mod report "$@";;
+  demo)
+    # A throwaway copy filled with fictional data — never touches your real database.
+    DEMO="${TMPDIR:-/tmp}/tt-demo"; DPORT="${TT_DEMO_PORT:-8399}"
+    TT_HOME="$DEMO" mod demo --fresh || exit 1
+    echo "${G}●${X} demo dashboard (fake data) at ${C}http://127.0.0.1:$DPORT${X} — Ctrl-C to quit"
+    (sleep 1.5; open "http://127.0.0.1:$DPORT") &
+    TT_HOME="$DEMO" TT_PORT="$DPORT" exec "$PY" -m uvicorn timetracker.dashboard:app --app-dir "$DIR" --host 127.0.0.1 --port "$DPORT" --log-level warning;;
+  update)
+    if [[ -d "$DIR/.git" ]]; then git -C "$DIR" pull --ff-only || exit 1
+    else
+      TMP=$(mktemp -d)
+      curl -fsSL "https://codeload.github.com/$REPO/tar.gz/refs/heads/main" | tar -xz -C "$TMP" --strip-components 1 || exit 1
+      rsync -a --exclude .venv --exclude docs --exclude scripts "$TMP/" "$DIR/" && rm -rf "$TMP"
+    fi
+    "$PY" -m pip install -q -r "$DIR/requirements.txt" && "$0" stop >/dev/null; "$0" start >/dev/null && echo "${G}updated${X}";;
+  uninstall)
+    for a in $AGENTS; do launchctl bootout "gui/$U/$a" 2>/dev/null; rm -f "$LA/$a.plist"; done
+    rm -f "$HOME/.local/bin/tt"
+    echo "Removed the background agents and the tt command."
+    echo "Your data is still in $DATA and the app in $DIR — delete them with:"
+    echo "  rm -rf \"$DATA\" \"$DIR\"";;
+  info)
+    fsz() { [[ -f "$1" ]] && stat -f%z "$1" || echo 0 }
+    hb()  { awk -v b="${1:-0}" 'BEGIN{if(b<1024)printf "%dB",b;else if(b<1048576)printf "%.0f KB",b/1024;else printf "%.1f MB",b/1048576}' }
+    comma() { awk -v n="${1:-0}" 'BEGIN{s=sprintf("%d",n);o="";while(length(s)>3){t=substr(s,length(s)-2);o=(o==""?t:t","o);s=substr(s,1,length(s)-3)}if(o!="")s=s","o;print s}' }
+    print -r -- "${B}LOCAL TIME TRACKER${X}                              $(date '+%Y-%m-%d %H:%M')"
+    cat <<CTX
+
+  A launchd daemon samples the frontmost app / window title / browser tab
+  every 3s into SQLite. A local FastAPI dashboard turns that into categories,
+  projects, focus and AI-usage stats. Nothing leaves your Mac except optional
+  email briefs (Resend) and optional AI calls (Claude / Gemini; Ollama is local).
+
+    collector.py ──3s poll──▶ events.db (SQLite) ◀── dashboard.py  (:$PORT)
+                                                 ◀── report.py     (email briefs)
+CTX
+    print -r -- ""
+    print -r -- "${B}PATHS${X}"
+    printf "  app         %s\n  data        %s\n  config      %s  (chmod 600)\n  dashboard   http://127.0.0.1:%s\n" "$DIR" "$DATA" "$DATA/config.json" "$PORT"
+    print -r -- ""
+    print -r -- "${B}STATUS${X}"
+    "$0" status | sed 's/^/  /'
+    if [[ -f $DB ]]; then
+      IFS='|' read -r EV PRJ RUL D0 <<< "$(sqlite3 "$DB" "SELECT (SELECT COUNT(*) FROM events),(SELECT COUNT(*) FROM projects),(SELECT COUNT(*) FROM rules),(SELECT strftime('%Y-%m-%d',MIN(start_ts),'unixepoch','localtime') FROM events);" 2>/dev/null)"
+      print -r -- ""
+      print -r -- "${B}DATABASE${X}"
+      printf "  %s on disk · %s events since %s · %s projects · %s rules\n" "$(hb $(( $(fsz $DB) + $(fsz $DB-wal) )))" "$(comma $EV)" "${D0:-—}" "$PRJ" "$RUL"
+    fi
+    cat <<CMD
+
+${B}COMMANDS${X}
+  tt setup                 onboarding wizard (AI, email briefs, projects, permissions)
+  tt config                show all settings · tt config set KEY VALUE
+  tt config email          set up Resend email briefs (+ test email)
+  tt config ai | tracking | projects | test-email | edit
+  tt start | stop | restart  control the background agents
+  tt status | info         health check / this page
+  tt open                  open the dashboard
+  tt report --period week  send an email brief now (today|yesterday|week|month)
+  tt demo                  explore the dashboard with fictional data
+  tt log                   follow the collector log
+  tt update | uninstall
+CMD
+    ;;
+  help|-h|--help|"")
+    "$0" info | sed -n '/COMMANDS/,$p';;
+  *)
+    echo "unknown command: $1 — try ${B}tt help${X}"; exit 1;;
+esac

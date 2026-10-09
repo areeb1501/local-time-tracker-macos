@@ -1,0 +1,1846 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Time Tracker</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#f5f6f8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0c0d10" media="(prefers-color-scheme: dark)">
+<link rel="apple-touch-icon" href="/static/icon-192.png">
+<link rel="icon" href="data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'><g%20fill='none'%20stroke-width='4.9'><path%20d='M16.69,6.2%20A9.81,9.81%200%200%201%2022.82,23.06'%20stroke='%233987e5'/><path%20d='M21.2,24.32%20A9.81,9.81%200%200%201%208.94,22.82'%20stroke='%231baf7a'/><path%20d='M7.68,21.2%20A9.81,9.81%200%200%201%208.06,10.23'%20stroke='%23eda100'/><path%20d='M9.44,8.71%20A9.81,9.81%200%200%201%2015.32,6.2'%20stroke='%239085e9'/></g><g%20stroke='%2352514e'%20stroke-width='1.9'%20stroke-linecap='round'><path%20d='M16,16%20L21.2,10.8'/><path%20d='M16,16%20L11.45,13.38'/></g><circle%20cx='16'%20cy='16'%20r='1.6'%20fill='%2352514e'/></svg>">
+<style>
+  :root {
+    --surface-1: #ffffff; --page: #f5f6f8; --sunken: #f0f1f4;
+    --ink-1: #0f1115; --ink-2: #4b5160; --muted: #8a909c;
+    --grid: #eceef2; --baseline: #d3d7df; --border: rgba(15,17,21,0.08);
+    --accent: #1f2329; --on-accent: #ffffff; --accent-soft: rgba(31,35,41,.10); --link: #2a78d6;
+    --shadow: 0 1px 2px rgba(15,17,21,.04), 0 4px 16px rgba(15,17,21,.04);
+    --s1:#2a78d6; --s2:#1baf7a; --s3:#eda100; --s4:#008300;
+    --s5:#4a3aa7; --s6:#e34948; --s7:#e87ba4; --s8:#eb6834;
+    --afk:#d5d9e1; --good-text:#0a7d32;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --surface-1: #16181d; --page: #0c0d10; --sunken: #1d2026;
+      --ink-1: #f4f5f7; --ink-2: #b4b9c4; --muted: #7d8391;
+      --grid: #252830; --baseline: #353945; --border: rgba(255,255,255,0.07);
+      --accent: #eceef2; --on-accent: #0f1115; --accent-soft: rgba(236,238,242,.16); --link: #6aa8f0;
+      --shadow: 0 1px 2px rgba(0,0,0,.3);
+      --s1:#3987e5; --s2:#199e70; --s3:#c98500; --s4:#008300;
+      --s5:#9085e9; --s6:#e66767; --s7:#d55181; --s8:#d95926;
+      --afk:#3a3f4b; --good-text:#22c55e;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased; font-feature-settings: "cv11", "ss01";
+    background: var(--page); color: var(--ink-1); padding: 0 28px 64px;
+    max-width: 1240px; margin: 0 auto;
+  }
+  h1 { font-size: 16px; font-weight: 700; letter-spacing: -.01em; display: flex; align-items: center; gap: 9px; white-space: nowrap; }
+  h1 svg { width: 26px; height: 26px; flex: none; }
+  h2 { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; margin-bottom: 14px; }
+  header {
+    position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+    margin: 0 -28px 22px; padding: 14px 28px;
+    background: color-mix(in srgb, var(--page) 82%, transparent);
+    backdrop-filter: saturate(1.6) blur(14px); -webkit-backdrop-filter: saturate(1.6) blur(14px);
+    border-bottom: 1px solid var(--border);
+  }
+  nav, .ranges { display: flex; gap: 2px; padding: 3px; background: var(--sunken); border-radius: 10px; border: 1px solid var(--border); }
+  .ranges:empty { display: none; }
+  nav button, .ranges button {
+    border: 0; background: none; color: var(--ink-2);
+    padding: 6px 13px; border-radius: 7px; cursor: pointer; font: inherit; font-size: 13px; font-weight: 500;
+    transition: background .15s, color .15s;
+  }
+  nav button:hover, .ranges button:hover { color: var(--ink-1); }
+  nav button.on, .ranges button.on { background: var(--surface-1); color: var(--ink-1); font-weight: 600;
+    box-shadow: 0 1px 2px rgba(15,17,21,.08), 0 0 0 1px var(--border); }
+  .spacer { flex: 1; }
+  .card {
+    background: var(--surface-1); border: 1px solid var(--border); box-shadow: var(--shadow);
+    border-radius: 14px; padding: 20px 22px; margin-bottom: 18px;
+  }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  @media (max-width: 760px) { .grid2 { grid-template-columns: 1fr; } }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap: 14px; margin-bottom: 18px; }
+  .tile { background: var(--surface-1); border: 1px solid var(--border); box-shadow: var(--shadow);
+    border-radius: 14px; padding: 16px 18px; position: relative; overflow: hidden; }
+  .tile .v { font-size: 26px; font-weight: 700; letter-spacing: -.02em; margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .tile .l { font-size: 12px; font-weight: 500; color: var(--muted); }
+  h2 .rl { text-transform: none; font-weight: 400; color: var(--muted); letter-spacing: normal; }
+  .tile .sub { font-size: 12px; color: var(--ink-2); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* labeled bar rows */
+  .barrow { display: grid; grid-template-columns: 170px 1fr 76px; gap: 12px; align-items: center; padding: 5px 0; }
+  .barrow .lbl { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: flex; align-items: center; gap: 7px; }
+  .swatch { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+  .barrow .track { height: 8px; position: relative; background: var(--sunken); border-radius: 4px; }
+  .barrow .fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px; min-width: 3px; }
+  .barrow .val { font-size: 12px; color: var(--ink-2); text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .empty { color: var(--muted); font-size: 13px; padding: 8px 0; }
+  .rev-row { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center;
+    padding: 9px 0; border-bottom: 1px solid var(--grid); }
+  .rev-row:last-child { border-bottom: none; }
+  .rev-row .meta { font-size: 12px; color: var(--ink-2); margin-top: 2px; }
+  .rev-row .acts { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+
+  /* timeline */
+  .tl-wrap { position: relative; }
+  .tl { position: relative; height: 46px; background: var(--sunken); border-radius: 8px; overflow: hidden; border: 1px solid var(--grid); }
+  .tl .blk { position: absolute; top: 6px; bottom: 6px; border-radius: 2px; cursor: pointer; }
+  .tl .blk:hover { outline: 2px solid var(--ink-1); outline-offset: 1px; z-index: 2; }
+  .tl-hours { display: flex; justify-content: space-between; color: var(--muted); font-size: 11px; margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 10px; font-size: 12px; color: var(--ink-2); }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+
+  #tooltip {
+    position: fixed; pointer-events: none; z-index: 50; display: none;
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 8px;
+    padding: 8px 10px; font-size: 12px; max-width: 340px;
+    box-shadow: 0 4px 14px rgba(0,0,0,.18);
+  }
+  #tooltip .t1 { font-weight: 600; }
+  #tooltip .t2 { color: var(--ink-2); overflow-wrap: break-word; }
+
+  /* forms & tables */
+  input, select { font: inherit; font-size: 13px; color: var(--ink-1); background: var(--surface-1);
+    border: 1px solid var(--baseline); border-radius: 8px; padding: 7px 10px; transition: border-color .15s, box-shadow .15s; }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--muted); box-shadow: 0 0 0 3px var(--accent-soft); }
+  button.act { font: inherit; font-size: 13px; background: var(--accent); color: var(--on-accent);
+    border: none; border-radius: 8px; padding: 7px 14px; cursor: pointer; font-weight: 600;
+    box-shadow: 0 1px 2px rgba(15,17,21,.18); transition: opacity .15s, transform .05s; }
+  button.act:hover { opacity: .86; }
+  button.act:active { transform: translateY(1px); }
+  button.act:disabled { opacity: .4; cursor: default; }
+  button.ghost { font: inherit; font-size: 12px; font-weight: 500; background: var(--surface-1); border: 1px solid var(--baseline);
+    color: var(--ink-2); border-radius: 7px; padding: 4px 10px; cursor: pointer; transition: border-color .15s, color .15s; }
+  button.ghost:hover { color: var(--ink-1); border-color: var(--muted); }
+  /* 📌 pin toggle: faint until the row is hovered, solid once pinned */
+  button.pin { font: inherit; background: none; border: 0; padding: 0 5px 0 0; cursor: pointer;
+    font-size: 13px; filter: grayscale(1); opacity: .3; }
+  tr:hover button.pin, .barrow:hover button.pin, button.pin:focus-visible { opacity: .75; }
+  button.pin.on { filter: none; opacity: 1; }
+  .formrow { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .06em;
+    padding: 8px 10px; border-bottom: 1px solid var(--grid); font-weight: 600; }
+  td { padding: 9px 10px; border-bottom: 1px solid var(--grid); vertical-align: top; }
+  tr:last-child td { border-bottom: 0; }
+  tbody tr:hover td, table tr:hover td { background: color-mix(in srgb, var(--sunken) 60%, transparent); }
+  td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .chip { display: inline-block; font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 99px;
+    background: var(--sunken); border: 1px solid var(--border); color: var(--ink-2); margin-right: 4px; }
+  .scroll { overflow-x: auto; }
+
+  /* sessions */
+  .meter { display: flex; height: 10px; border-radius: 5px; overflow: hidden; gap: 2px; background: var(--sunken); }
+  .meter div { min-width: 0; }
+  .focuspct { font-size: 22px; font-weight: 650; }
+  .live-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--good-text); margin-right: 6px; }
+  dialog { border: 1px solid var(--border); border-radius: 16px; box-shadow: 0 24px 60px rgba(0,0,0,.25); background: var(--surface-1);
+    color: var(--ink-1); padding: 18px; min-width: 320px; }
+  dialog::backdrop { background: rgba(10,12,16,.4); backdrop-filter: blur(3px); }
+  ::selection { background: var(--accent-soft); }
+  a { color: var(--link); }
+
+  /* tab-switch crossfade (view transitions API; no-op where unsupported) */
+  ::view-transition-old(root), ::view-transition-new(root) { animation-duration: 120ms; }
+
+  /* Ask tab */
+  .askwrap { display: grid; grid-template-columns: 230px 1fr; gap: 16px; align-items: start; }
+  @media (max-width: 760px) { .askwrap { grid-template-columns: 1fr; } }
+  .askthreads { display: flex; flex-direction: column; gap: 4px; }
+  .askthreads button { text-align: left; font: inherit; font-size: 13px; background: none;
+    border: 1px solid transparent; border-radius: 7px; padding: 7px 9px; color: var(--ink-2);
+    cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: 100%; }
+  .askthreads button:hover { background: var(--page); }
+  .askthreads button.on { background: var(--page); border-color: var(--border); color: var(--ink-1); font-weight: 600; }
+  #askMsgs { display: flex; flex-direction: column; gap: 12px; max-height: 60vh; overflow-y: auto;
+    padding: 4px 2px; scroll-behavior: smooth; }
+  .msg { max-width: 88%; border-radius: 12px; padding: 9px 13px; font-size: 13.5px; overflow-wrap: break-word; }
+  .msg.user { align-self: flex-end; background: var(--accent); color: var(--on-accent); border-bottom-right-radius: 4px; }
+  .msg.ai { align-self: flex-start; background: var(--sunken); border: 1px solid var(--grid); border-bottom-left-radius: 4px; }
+  .msg.ai p { margin: 0 0 8px; } .msg.ai p:last-child { margin: 0; }
+  .msg.ai ul { margin: 0 0 8px; padding-left: 18px; } .msg.ai li { margin: 2px 0; }
+  .msg.ai code { background: var(--grid); border-radius: 4px; padding: 0 4px; font-size: 12px; }
+  .msg.ai pre { background: var(--grid); border-radius: 8px; padding: 8px 10px; overflow-x: auto;
+    font-size: 12px; margin: 0 0 8px; }
+  .msg.ai pre code { background: none; padding: 0; }
+  .askchips { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0; }
+  #askInput { flex: 1; min-width: 200px; resize: none; font: inherit; font-size: 13.5px;
+    color: var(--ink-1); background: var(--surface-1); border: 1px solid var(--baseline);
+    border-radius: 9px; padding: 9px 11px; line-height: 1.4; }
+  .typing { display: inline-flex; gap: 4px; align-items: center; padding: 4px 2px; }
+  .typing i { width: 6px; height: 6px; border-radius: 50%; background: var(--muted);
+    animation: tblink 1.2s infinite ease-in-out; }
+  .typing i:nth-child(2) { animation-delay: .2s; } .typing i:nth-child(3) { animation-delay: .4s; }
+  @keyframes tblink { 0%, 80%, 100% { opacity: .25 } 40% { opacity: 1 } }
+
+  /* heatmap */
+  .hm { display: grid; gap: 3px; }
+  .hm-row { display: grid; grid-template-columns: 36px repeat(24, 1fr); gap: 3px; align-items: center; }
+  .hm-cell { aspect-ratio: 1.4; border-radius: 4px; border: 0; background-color: var(--sunken); min-width: 0; }
+  .hm-day, .hm-hour { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .hm-hour { text-align: left; }
+</style>
+</head>
+<body>
+<header>
+  <h1><svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="var(--accent)"/><g fill="none" stroke="var(--on-accent)" stroke-width="2.4" stroke-linecap="round"><circle cx="16" cy="16" r="8.5" stroke-opacity=".55"/><path d="M16 7.5a8.5 8.5 0 0 1 8.5 8.5" /><path d="M16 16V11.2M16 16l3.4 2"/></g></svg>Time Tracker</h1>
+  <nav id="tabs"></nav>
+  <div class="spacer"></div>
+  <div class="ranges" id="ranges"></div>
+</header>
+
+<main id="view"></main>
+<div id="tooltip"></div>
+
+<dialog id="assignDlg">
+  <h2 style="margin-bottom:12px">Assign time to a project</h2>
+  <div id="assignInfo" style="font-size:13px;color:var(--ink-2);margin-bottom:10px"></div>
+  <div class="formrow">
+    <select id="assignProject"></select>
+    <button class="act" id="assignGo">Assign</button>
+    <button class="ghost" onclick="assignDlg.close()">Cancel</button>
+  </div>
+</dialog>
+
+<script>
+"use strict";
+const $ = (s, el=document) => el.querySelector(s);
+const api = async (path, opts) => {
+  const r = await fetch(path, opts ? {headers:{'Content-Type':'application/json'}, ...opts} : undefined);
+  if (!r.ok) { const d = await r.json().catch(()=>({})); throw new Error(d.detail || r.statusText); }
+  return r.json();
+};
+
+// ---- color assignment: fixed per entity name, labels always present --------
+const SLOTS = ['--s1','--s2','--s3','--s4','--s5','--s6','--s7','--s8'];
+const FIXED = {'Coding':0,'AI Tools':4,'Communication':1,'Docs & Writing':2,'Reading & Study':3,
+               'Entertainment':5,'Browsing':6,'Design':7,'Databases':4,'Spreadsheets':2,
+               'Finance & Admin':7};
+function slotColor(name) {
+  let i = FIXED[name];
+  if (i === undefined) { i = 0; for (const ch of name) i = (i*31 + ch.charCodeAt(0)) >>> 0; i %= 8; }
+  return `var(${SLOTS[i]})`;
+}
+// Projects share one hue per tree: a top-level project gets a palette slot,
+// each level of sub-project below it is a lighter shade of that same hue.
+function projectColor(p) {
+  const byId = new Map((state.projects || []).map(x => [x.id, x]));
+  let root = p, depth = 0;
+  while (root.parent_id && byId.has(root.parent_id) && depth < 10) { root = byId.get(root.parent_id); depth++; }
+  const base = slotColor(root.name);
+  return depth ? `color-mix(in srgb, ${base} ${Math.max(45, 100 - 22 * depth)}%, var(--surface-1))` : base;
+}
+function colorOf(name) {
+  if (name === 'AFK' || name === 'Uncategorized' || !name) return 'var(--afk)';
+  // project names (incl. "📦 X" archived and "X (directly)" rows) use the tree color
+  const pn = name.replace(/^📦 /, '').replace(/ \(directly\)$/, '');
+  const proj = (state.projects || []).find(x => x.name === pn);
+  if (proj) return projectColor(proj);
+  let i = FIXED[name];
+  if (i === undefined) { i = 0; for (const ch of name) i = (i*31 + ch.charCodeAt(0)) >>> 0; i %= 8; }
+  return `var(${SLOTS[i]})`;
+}
+const fmtD = s => { s = Math.round(s); const h = Math.floor(s/3600), m = Math.round((s%3600)/60);
+  return h ? `${h}h ${m}m` : (m ? `${m}m` : `${s}s`); };
+const fmtT = ts => new Date(ts*1000).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+const fmtDT = ts => new Date(ts*1000).toLocaleString([], {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'});
+const esc = s => (s ?? '').toString().replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+// ---- date ranges -----------------------------------------------------------
+const dayStart = (offset=0) => { const d = new Date(); d.setHours(0,0,0,0); return d.getTime()/1000 + offset*86400; };
+const RANGES = [
+  {key:'today', label:'Today',     get:()=>[dayStart(), dayStart(1)]},
+  {key:'yday',  label:'Yesterday', get:()=>[dayStart(-1), dayStart()]},
+  {key:'7d',    label:'7 days',    get:()=>[dayStart(-6), dayStart(1)]},
+  {key:'30d',   label:'30 days',   get:()=>[dayStart(-29), dayStart(1)]},
+  {key:'all',   label:'All time',  get:()=>[0, dayStart(1)]},
+];
+// "All time" is Projects-only (per-project history); Projects has no
+// "Yesterday" column. A range that doesn't apply to the tab falls back.
+const rangesFor = tab => RANGES.filter(r => tab === 'projects' ? r.key !== 'yday' : r.key !== 'all');
+const rangeKey = () => rangesFor(state.tab).some(r => r.key === state.range)
+  ? state.range : (state.tab === 'projects' ? 'all' : '30d');
+const REPORT_FIELD = {today: 'today', '7d': 'week', '30d': 'month', all: 'all'};   // project_report columns
+const RANGE_DAYS = {today: 1, '7d': 7, '30d': 30, all: 0};                        // project_detail ?days=
+let state = { tab:'overview', range:'today', projects: [], projectDetail: null, sessionDetail: null };
+
+// ---- header ---------------------------------------------------------------
+const TABS = [['overview','Overview'],['projects','Projects'],['sessions','Sessions'],['activity','Activity'],['ask','✨ Ask'],['settings','Rules & Settings']];
+function renderHeader() {
+  $('#tabs').innerHTML = TABS.map(([k,l]) =>
+    `<button class="${state.tab===k?'on':''}" onclick="setTab('${k}')">${l}</button>`).join('');
+  $('#ranges').innerHTML = rangesFor(state.tab).map(r =>
+    `<button class="${rangeKey()===r.key?'on':''}" onclick="setRange('${r.key}')">${r.label}</button>`).join('');
+  $('#ranges').style.visibility = state.tab === 'ask' ? 'hidden' : '';   // ranges don't apply to chat
+}
+// ---- hash routing: #/overview?range=today, #/project/3, #/sessions … ---------
+function stateToHash() {
+  const path = (state.projectDetail && state.tab === 'projects')
+    ? `/projects/${state.projectDetail}`
+    : (state.sessionDetail && state.tab === 'sessions') ? `/sessions/${state.sessionDetail}`
+    : (state.tab === 'ask' && askThread) ? `/ask/${askThread}` : `/${state.tab}`;
+  return `#${path}?range=${state.range}`;
+}
+function parseHash() {
+  const h = (location.hash || '').replace(/^#/, '') || '/overview';
+  const [path, q] = h.split('?');
+  const parts = path.split('/').filter(Boolean);
+  const params = new URLSearchParams(q || '');
+  const r = params.get('range');
+  if (RANGES.some(x => x.key === r)) state.range = r;
+  if ((parts[0] === 'project' || parts[0] === 'projects') && +parts[1]) {
+    state.tab = 'projects'; state.projectDetail = +parts[1]; state.sessionDetail = null;
+  } else if (parts[0] === 'sessions' && +parts[1]) {
+    state.tab = 'sessions'; state.sessionDetail = +parts[1]; state.projectDetail = null;
+  } else {
+    state.tab = TABS.some(t => t[0] === parts[0]) ? parts[0] : 'overview';
+    state.projectDetail = null; state.sessionDetail = null;
+    if (state.tab === 'ask') askThread = +parts[1] || null;
+  }
+}
+function nav() {
+  const h = stateToHash();
+  if (location.hash === h) render();
+  else location.hash = h;          // hashchange listener renders
+}
+window.addEventListener('hashchange', () => { parseHash(); render(); });
+
+window.setTab = k => { state.tab = k; state.projectDetail = null; state.sessionDetail = null; nav(); };
+window.setRange = k => { state.range = k; actPage = 0; maPage = 0; nav(); };
+const curRange = () => RANGES.find(r => r.key === rangeKey()).get();
+
+// Projects laid out depth-first with an indent level, for nested <select>s.
+// Archived projects are hidden from pickers unless includeArchived is set.
+function projectTreeFlat(includeArchived = false) {
+  const out = [];
+  const walk = (parentId, depth) => {
+    state.projects.filter(p => (p.parent_id || null) === parentId && (includeArchived || !p.archived))
+      .sort((a, b) => (b.pinned || 0) - (a.pinned || 0) || a.name.localeCompare(b.name))
+      .forEach(p => { out.push({ p, depth }); walk(p.id, depth + 1); });
+  };
+  walk(null, 0);
+  return out;
+}
+const activeProjects = () => state.projects.filter(p => !p.archived);
+const projectOptions = (selId, extra = '') =>
+  extra + projectTreeFlat().map(({ p, depth }) =>
+    `<option value="${p.id}" ${p.id === selId ? 'selected' : ''}>${'   '.repeat(depth)}${depth ? '· ' : ''}${esc(p.name)}</option>`).join('');
+const pinButton = p => `<button class="pin${p.pinned ? ' on' : ''}" title="${p.pinned ? 'Pinned — click to unpin' : 'Pin to the top'}" onclick="event.stopPropagation();togglePin(${p.id}, ${!p.pinned})">📌</button>`;
+const MAX_SUBPROJECTS = 8;   // display only; must match MAX_CHILDREN in dashboard.py
+
+// ---- shared pieces ---------------------------------------------------------
+// linkFn(it) may return a project id to make the row a drill-in link.
+function barRows(items, colorFn, linkFn, withPins = false) {
+  if (!items.length) return '<div class="empty">Nothing recorded yet.</div>';
+  const max = Math.max(1, ...items.map(it => it.seconds || 0));   // pinned rows may lead
+  const row = (it, indent, color) => {
+    const pin = withPins && !indent ? pinButton(it) : (it.pinned ? '📌 ' : '');
+    const link = linkFn && linkFn(it);
+    return `
+    <div class="barrow" style="${link ? 'cursor:pointer' : ''}"${link ? ` onclick="openProject(${link})" title="drill into ${esc(it.name)}"` : ''}>
+      <div class="lbl"${indent ? ' style="padding-left:18px"' : ''}>${pin}<span class="swatch" style="background:${color}"></span>${esc(it.name)}${link ? ' <span style="color:var(--muted);font-size:11px">›</span>' : ''}</div>
+      <div class="track"><div class="fill" style="width:${Math.max(1, 100*it.seconds/max)}%;background:${color}"></div></div>
+      <div class="val">${fmtD(it.seconds)}</div>
+    </div>`;
+  };
+  return items.map(it =>
+    row(it, false, colorFn(it.name)) +
+    (it.children || []).map(k => row(k, true, colorFn(k.name))).join('')
+  ).join('');
+}
+
+function heatmapHtml(hm) {
+  const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const max = Math.max(1, ...hm.grid.flat());
+  // sequential blue ramp, light->dark (steps from the validated palette)
+  const ramp = ['#cde2fb','#9ec5f4','#6da7ec','#3987e5','#256abf','#184f95','#0d366b'];
+  const cell = (v, d, h) => {
+    const bg = v === 0 ? 'var(--sunken)' : ramp[Math.min(6, Math.floor(7 * v / (max + 1)))];
+    return `<div class="hm-cell" style="background:${bg}"
+      onmousemove='showTip(event, "<div class=\\"t1\\">${days[d]} ${String(h).padStart(2,'0')}:00–${String((h+1)%24).padStart(2,'0')}:00</div><div class=\\"t2\\">${fmtD(v)} active</div>")'
+      onmouseleave="hideTip()"></div>`;
+  };
+  return `<div class="hm">
+    ${hm.grid.map((row,d) => `<div class="hm-row"><div class="hm-day">${days[d]}</div>${row.map((v,h)=>cell(v,d,h)).join('')}</div>`).join('')}
+    <div class="hm-row"><div class="hm-day"></div>${Array.from({length:24},(_,h)=>`<div class="hm-hour">${h%6===0?h:''}</div>`).join('')}</div>
+  </div>
+  <div class="legend" style="align-items:center">less
+    ${ramp.map(c=>`<span class="swatch" style="background:${c};margin:0 -4px 0 2px"></span>`).join('')}
+    <span style="margin-left:8px">more · last ${hm.weeks} weeks, active time only</span></div>`;
+}
+
+const tooltip = $('#tooltip');
+window.showTip = (ev, html) => {
+  tooltip.innerHTML = html; tooltip.style.display = 'block';
+  const x = Math.min(ev.clientX + 14, innerWidth - 360), y = Math.min(ev.clientY + 14, innerHeight - 90);
+  tooltip.style.left = x + 'px'; tooltip.style.top = y + 'px';
+};
+window.hideTip = () => tooltip.style.display = 'none';
+
+// ---- assign dialog ---------------------------------------------------------
+let assignRange = null;
+let bulkEventIds = null;
+window.openAssign = (start, end, label) => {
+  assignRange = [start, end];
+  $('#assignInfo').textContent = `${fmtDT(start)} → ${fmtT(end)} (${fmtD(end-start)}) — ${label}`;
+  $('#assignProject').innerHTML = activeProjects().map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join('')
+    || '<option value="">No projects yet - create one in Rules & Settings</option>';
+  assignDlg.showModal();
+};
+$('#assignGo').onclick = async () => {
+  const pid = +$('#assignProject').value;
+  if (!pid) return;
+  if (visitToAssign) {
+    // assign only this visit's own events, not interleaved time from other apps
+    await api('/api/ai/apply', {method:'POST', body: JSON.stringify({items: [{project_id: pid, event_ids: visitToAssign.event_ids}]})});
+    visitToAssign = null;
+  } else if (bulkEventIds) {
+    await api('/api/ai/apply', {method:'POST', body: JSON.stringify({items: [{project_id: pid, event_ids: bulkEventIds}]})});
+    bulkEventIds = null;
+  } else {
+    await api('/api/assignments', {method:'POST', body: JSON.stringify({start_ts: assignRange[0], end_ts: assignRange[1], project_id: pid})});
+  }
+  assignDlg.close(); render();
+};
+assignDlg.addEventListener('close', () => { visitToAssign = null; bulkEventIds = null; });
+
+function unassignedCardHtml(blocks, minutes) {
+  if (!blocks || !blocks.length) return '';
+  window._review = blocks;
+  const opts = activeProjects().map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join('')
+    || '<option value="">create a project first</option>';
+  const rows = blocks.map((b, i) => {
+    const kind = b.meeting ? 'Meeting' : 'Block';
+    const title = b.label && b.label !== b.source ? b.label : '';
+    return `<div class="rev-row">
+      <div>
+        <div><span class="chip">${esc(kind)}</span> <b>${esc(title || b.source)}</b>
+          ${title && b.source !== title ? `<span style="color:var(--muted)"> · ${esc(b.source)}</span>` : ''}</div>
+        <div class="meta">${fmtDT(b.start_ts)} → ${fmtT(b.end_ts)} · ${fmtD(b.seconds)} unassigned</div>
+      </div>
+      <div class="acts">
+        <select id="revP${i}">${opts}</select>
+        <button class="act" onclick="reviewAssign(${i}, this)">Assign</button>
+        <button class="ghost" onclick="reviewSkip(${i}, this)">Skip</button>
+      </div>
+    </div>`;
+  }).join('');
+  return `<div class="card">
+    <h2>Needs a project? <span style="text-transform:none;font-weight:400;color:var(--muted)">${blocks.length} long unassigned ${blocks.length===1?'block':'blocks'}</span></h2>
+    <div style="font-size:12px;color:var(--muted);margin:-4px 0 8px">Meetings and other sessions over ${minutes} min with no project. Meet links don't say which project — pick one, or Skip if it isn't project work. Under ${minutes} min is ignored.</div>
+    ${rows}
+  </div>`;
+}
+window.reviewAssign = async (i, btn) => {
+  const b = _review[i], pid = +$(`#revP${i}`).value;
+  if (!pid || !b.event_ids.length) return;
+  btn.disabled = true; btn.textContent = 'assigning…';
+  try {
+    await api('/api/ai/apply', {method:'POST', body: JSON.stringify({items: [{project_id: pid, event_ids: b.event_ids}]})});
+    render();
+  } catch (e) { btn.disabled = false; btn.textContent = 'Assign'; alert(e.message); }
+};
+window.reviewSkip = async (i, btn) => {
+  const b = _review[i];
+  btn.disabled = true;
+  try {
+    await api('/api/review/skip', {method:'POST', body: JSON.stringify({start_ts: b.start_ts, end_ts: b.end_ts, keys: b.keys})});
+    render();
+  } catch (e) { btn.disabled = false; alert(e.message); }
+};
+
+// ---- OVERVIEW ---------------------------------------------------------------
+// `field` (a project_report column) is highlighted and drives the sort.
+function projectReportHtml(rep, field = 'all') {
+  if (!rep.length) return '<div class="empty">No project time yet — add rules or assign time in Activity.</div>';
+  const cols = [['today', 'Today'], ['week', '7 days'], ['month', '30 days'], ['all', 'All time']];
+  const hl = k => k === field ? ';font-weight:650;color:var(--ink-1)' : '';
+  const cell = (p, k) => `<td class="num" style="text-align:right${hl(k)}">${p[k] ? fmtD(p[k]) : '—'}</td>`;
+  const byField = xs => [...xs].sort((a, b) => (b.pinned || 0) - (a.pinned || 0) || (b[field] || 0) - (a[field] || 0) || b.all - a.all);
+  const row = (p, indent) => `<tr style="cursor:pointer" onclick="openProject(${p.id})" title="click for the full breakdown">
+    <td style="${indent ? 'padding-left:26px;color:var(--ink-2)' : ''}">
+      ${pinButton(p)}<span class="swatch" style="background:${colorOf(p.name)};display:inline-block;margin-right:6px"></span>${esc(p.name)} <span style="color:var(--muted);font-size:11px">›</span></td>
+    ${cols.map(([k]) => cell(p, k)).join('')}</tr>`;
+  return `<div class="scroll"><table>
+    <tr><th>Project</th>${cols.map(([k, l]) => `<th style="text-align:right${hl(k)}">${l}</th>`).join('')}</tr>
+    ${byField(rep).map(p => row(p, false) + byField(p.children || []).map(k => row(k, true)).join('')).join('')}
+  </table></div>`;
+}
+
+const BRIEF_LABELS = {today: "Email today's brief", week: 'Email weekly brief', month: 'Email monthly brief'};
+window.sendBrief = async period => {
+  const btn = event.target; btn.disabled = true; btn.textContent = 'sending…';
+  try { const r = await api('/api/brief', {method:'POST', body: JSON.stringify({period})});
+        btn.textContent = `sent to ${r.to}`; }
+  catch (e) { btn.textContent = 'failed'; alert(e.message); }
+  setTimeout(() => { btn.disabled = false; btn.textContent = BRIEF_LABELS[period]; }, 4000);
+};
+
+function aiUsageCardHtml(ai) {
+  const trend = ai.daily.map(d => `
+    <div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;height:64px"
+         onmousemove='showTip(event, "<div class=\\"t1\\">${d.label}</div><div class=\\"t2\\">${fmtD(d.ai)} AI · ${d.pct}% of ${fmtD(d.active)} active</div>")'
+         onmouseleave="hideTip()">
+      <div style="height:${Math.max(d.ai ? 5 : 0, d.pct)}%;background:var(--s5);border-radius:2px 2px 0 0;min-width:3px"></div>
+    </div>`).join('');
+  const rest = Math.max(0, ai.active_seconds - ai.ai_seconds);
+  const share = ai.active_seconds ? `<div class="meter" style="margin:10px 0">
+      ${ai.ai_seconds ? `<div style="flex:${ai.ai_seconds};background:var(--s5)"></div>` : ''}
+      ${rest ? `<div style="flex:${rest};background:var(--afk)"></div>` : ''}</div>` : '';
+  return `<div class="card"><h2>AI usage</h2>
+    <div style="display:flex;gap:22px;align-items:baseline;flex-wrap:wrap">
+      <div><span class="focuspct">${ai.pct}%</span> <span style="font-size:12px;color:var(--muted)">of active time</span></div>
+      <div style="font-size:13px;color:var(--ink-2)">${fmtD(ai.ai_seconds)} AI-assisted${ai.coding_seconds ? ` · ${ai.coding_ai_pct}% of coding time` : ''}</div>
+    </div>
+    ${share}
+    ${barRows(ai.by_tool.slice(0,8), () => 'var(--s5)')}
+    <div style="font-size:11px;color:var(--muted);margin:12px 0 4px;text-transform:uppercase;letter-spacing:.04em">Daily AI share — last 14 days</div>
+    <div style="display:flex;gap:2px;align-items:flex-end;border-bottom:1px solid var(--baseline)">${trend}</div>
+    <div style="display:flex;justify-content:space-between;color:var(--muted);font-size:11px;margin-top:3px">
+      <span>${ai.daily[0].label}</span><span>${ai.daily[ai.daily.length-1].label}</span></div>
+    <div style="font-size:11px;color:var(--muted);margin-top:8px">AI = chat sites (ChatGPT, Claude, Perplexity, Grok, Gemini…), AI IDEs (Cursor, Antigravity…), and CLI agents like Claude Code — incl. inside Ghostty/iTerm/Terminal/VS Code. Add your own in Rules & Settings → AI rules.</div>
+  </div>`;
+}
+
+function focusCardHtml(fo) {
+  const rows = [
+    [`Deep work (blocks ≥ ${fo.deep_threshold_minutes}m)`, fo.deep_seconds ? `${fmtD(fo.deep_seconds)} · ${fo.deep_blocks} block${fo.deep_blocks===1?'':'s'}` : '—'],
+    ['Longest unbroken streak', fo.longest_streak_seconds ? fmtD(fo.longest_streak_seconds) : '—'],
+    ['Context switches', fo.switches_per_hour !== null ? `${fo.switches} total · ${fo.switches_per_hour}/hour` : (fo.switches || '—')],
+    ['Focus score', fo.focus_score !== null ? `${fo.focus_score}/100` : '— (needs 30m+ active)'],
+  ];
+  return `<div class="card"><h2>Focus & fragmentation</h2>
+    <table>${rows.map(r=>`<tr><td style="color:var(--ink-2)">${r[0]}</td><td class="num" style="text-align:right">${r[1]}</td></tr>`).join('')}</table>
+    <div style="font-size:11px;color:var(--muted);margin-top:8px">A switch = changing app or site. Focus score = share of active time spent inside deep-work blocks.</div></div>`;
+}
+
+function distractionsCardHtml(dx) {
+  const trend = dx.daily.map(d => `
+    <div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;height:64px"
+         onmousemove='showTip(event, "<div class=\\"t1\\">${d.label}</div><div class=\\"t2\\">${fmtD(d.seconds)} distracted · ${d.pct}% of ${fmtD(d.active)} active</div>")'
+         onmouseleave="hideTip()">
+      <div style="height:${Math.max(d.seconds ? 5 : 0, d.pct)}%;background:var(--s6);border-radius:2px 2px 0 0;min-width:3px"></div>
+    </div>`).join('');
+  const rest = Math.max(0, dx.active_seconds - dx.seconds);
+  const share = dx.active_seconds ? `<div class="meter" style="margin:10px 0">
+      ${dx.seconds ? `<div style="flex:${dx.seconds};background:var(--s6)"></div>` : ''}
+      ${rest ? `<div style="flex:${rest};background:var(--afk)"></div>` : ''}</div>` : '';
+  return `<div class="card"><h2>Top distractions</h2>
+    <div style="display:flex;gap:22px;align-items:baseline;flex-wrap:wrap">
+      <div><span class="focuspct">${dx.pct}%</span> <span style="font-size:12px;color:var(--muted)">of active time</span></div>
+      <div style="font-size:13px;color:var(--ink-2)">${fmtD(dx.seconds)} on distractions</div>
+    </div>
+    ${share}
+    ${dx.by_item.length ? barRows(dx.by_item.slice(0,10), () => 'var(--s6)')
+                        : '<div class="empty">No distraction time in this range. 🎉</div>'}
+    <div style="font-size:11px;color:var(--muted);margin:12px 0 4px;text-transform:uppercase;letter-spacing:.04em">Daily distraction share — last ${dx.daily.length} days</div>
+    <div style="display:flex;gap:2px;align-items:flex-end;border-bottom:1px solid var(--baseline)">${trend}</div>
+    <div style="display:flex;justify-content:space-between;color:var(--muted);font-size:11px;margin-top:3px">
+      <span>${dx.daily[0].label}</span><span>${dx.daily[dx.daily.length-1].label}</span></div>
+    <div style="font-size:11px;color:var(--muted);margin-top:8px">Counts time in: ${dx.categories.map(esc).join(', ')}. Change which categories count in Rules & Settings → Time tracking; tune which sites/apps land in them via category rules.</div>
+  </div>`;
+}
+
+async function renderOverview() {
+  const [start, end] = curRange();
+  return swr(`overview|${rangeKey()}|${start}`,
+    () => Promise.all([
+      api(`/api/overview?start=${start}&end=${end}`),
+      api('/api/heatmap?weeks=4'), projectsReady]),   // projects → consistent colors
+    ([o, hm]) => buildOverviewHtml(o, hm, start, end));
+}
+function buildOverviewHtml(o, hm, start, end) {
+  const s = o.summary, ct = o.coding_tools, ai = o.ai_usage, fo = o.focus;
+  const dx = o.distractions;   // may be absent in a pre-upgrade localStorage cache entry
+  const topApp = s.by_app[0], topCat = s.by_category.filter(c => c.name !== 'AFK')[0];
+  const showTl = s.timeline.length > 0;
+
+  let tl = '';
+  if (showTl) {
+    const t0 = Math.max(start, Math.floor(s.timeline[0].start/3600)*3600);
+    const t1 = Math.min(end, Math.ceil(s.timeline[s.timeline.length-1].end/3600)*3600);
+    const span = Math.max(t1 - t0, 3600);
+    const blocks = s.timeline.map((e,i) => {
+      const l = 100*(e.start-t0)/span, w = Math.max(0.15, 100*(e.end-e.start)/span);
+      return `<div class="blk" style="left:${l}%;width:${w}%;background:${colorOf(e.afk?'AFK':e.category)}"
+        onmousemove='showTip(event, tipHtml(${i}))' onmouseleave="hideTip()"
+        onclick="tlAssign(${i})"></div>`;
+    }).join('');
+    const hours = [];
+    for (let t = t0; t <= t1; t += Math.max(3600, Math.round(span/8/3600)*3600)) hours.push(fmtT(t));
+    const cats = [...new Set(s.timeline.map(e => e.afk ? 'AFK' : e.category))];
+    window._tl = s.timeline;
+    window.tipHtml = i => { const e = _tl[i]; return JSON.stringify(
+      `<div class='t1'>${esc(e.app)} · ${fmtD(e.end-e.start)}</div>`+
+      `<div class='t2'>${esc(e.title || e.url || '')}</div>`+
+      `<div class='t2'>${fmtT(e.start)}–${fmtT(e.end)} · ${esc(e.category)}${e.project ? ' · ' + esc(e.project) : ''}</div>`
+    ).slice(1,-1); };
+    window.tlAssign = i => { const e = _tl[i]; if (!e.afk) openAssign(e.start, e.end, `${e.app} — ${e.title || e.url || ''}`); };
+    tl = `<div class="card"><h2>Timeline <span style="text-transform:none;font-weight:400;color:var(--muted)">(click a block to assign it to a project)</span></h2>
+      <div class="tl-wrap"><div class="tl">${blocks}</div>
+      <div class="tl-hours">${hours.map(h=>`<span>${h}</span>`).join('')}</div>
+      <div class="legend">${cats.map(c=>`<span><span class="swatch" style="background:${colorOf(c)}"></span>${esc(c)}</span>`).join('')}</div></div></div>`;
+  }
+
+  return `
+    <div class="tiles">
+      <div class="tile"><div class="l">Active time</div><div class="v">${fmtD(s.active_seconds)}</div></div>
+      <div class="tile"><div class="l">AI usage</div><div class="v">${ai.pct}%</div><div class="sub">${fmtD(ai.ai_seconds)} AI-assisted</div></div>
+      <div class="tile"><div class="l">Deep work</div><div class="v">${fmtD(fo.deep_seconds)}</div><div class="sub">${fo.deep_blocks ? `${fo.deep_blocks} block${fo.deep_blocks===1?'':'s'} ≥ ${fo.deep_threshold_minutes}m` : `no blocks ≥ ${fo.deep_threshold_minutes}m yet`}</div></div>
+      ${dx ? `<div class="tile"><div class="l">Distractions</div><div class="v">${fmtD(dx.seconds)}</div><div class="sub">${dx.by_item[0] ? `${dx.pct}% · mostly ${esc(dx.by_item[0].name)}` : `${dx.pct}% of active time`}</div></div>` : ''}
+      <div class="tile"><div class="l">Away / idle</div><div class="v">${fmtD(s.afk_seconds)}</div></div>
+      <div class="tile"><div class="l">Top app</div><div class="v">${topApp?fmtD(topApp.seconds):'—'}</div><div class="sub">${topApp?esc(topApp.name):''}</div></div>
+      <div class="tile"><div class="l">Top category</div><div class="v">${topCat?fmtD(topCat.seconds):'—'}</div><div class="sub">${topCat?esc(topCat.name):''}</div></div>
+    </div>
+    ${tl}
+    <div class="grid2">
+      <div class="card"><h2>By category</h2>${barRows(s.by_category, colorOf)}</div>
+      ${dx ? distractionsCardHtml(dx) : ''}
+      ${aiUsageCardHtml(ai)}
+      <div class="card"><h2>Coding tools & agents</h2>${barRows(ct.tools, colorOf)}
+        ${ct.tools.length ? `<div style="font-size:11px;color:var(--muted);margin-top:6px">${fmtD(ct.total_seconds)} total · CLI agents (Claude Code, Codex, …) are detected from terminal window titles</div>` : ''}</div>
+      ${focusCardHtml(fo)}
+      <div class="card"><h2>By project</h2>${barRows(s.by_project, colorOf)}
+        ${s.by_project.length ? '<div style="font-size:11px;color:var(--muted);margin-top:6px">Full table with exact totals is in the Projects tab.</div>' : '<div class="empty">Add project rules in Rules & Settings, or assign time from the timeline / Activity tab.</div>'}</div>
+      <div class="card"><h2>Top apps</h2>${barRows(s.by_app.slice(0,12), colorOf)}</div>
+      <div class="card"><h2>Top sites</h2>${barRows(s.by_domain.slice(0,12), colorOf)}</div>
+    </div>
+    <div class="card"><h2>When you work — activity heatmap</h2>${heatmapHtml(hm)}</div>
+    ${unassignedCardHtml(o.unassigned_blocks, o.unassigned_prompt_minutes || 1)}
+    ${s.uncategorized_top.length ? `<div class="card"><h2>Uncategorized — add rules for these</h2>${barRows(s.uncategorized_top, ()=>'var(--afk)')}</div>` : ''}
+    <div class="card"><h2>Email brief</h2>
+      <div class="formrow" style="margin-bottom:0">
+        <button class="ghost" onclick="sendBrief('today')">Email today's brief</button>
+        <button class="ghost" onclick="sendBrief('week')">Email weekly brief</button>
+        <button class="ghost" onclick="sendBrief('month')">Email monthly brief</button>
+        <span style="font-size:12px;color:var(--muted)">A weekly brief also goes out automatically every Monday 8am. The monthly brief covers the last 30 days with extra stats and week-by-week splits.</span>
+      </div></div>`;
+}
+
+// ---- PROJECTS ----------------------------------------------------------------
+function archivedSectionHtml(rep) {
+  // Archived top-level projects (their subtree came with them), plus archived
+  // sub-projects whose parent is still active, shown as "Parent › Child".
+  const rows = [
+    ...rep.filter(p => p.archived),
+    ...rep.filter(p => !p.archived).flatMap(p =>
+      (p.children || []).filter(k => k.archived).map(k => ({...k, name: `${p.name} › ${k.name}`}))),
+  ];
+  if (!rows.length) return '';
+  const cell = v => `<td class="num" style="text-align:right">${v ? fmtD(v) : '—'}</td>`;
+  const trs = rows.map(p => `<tr style="cursor:pointer" onclick="openProject(${p.id})" title="click for the full breakdown">
+      <td style="color:var(--ink-2)">📦 ${esc(p.name)} <span style="color:var(--muted);font-size:11px">›</span></td>
+      ${cell(p.today)}${cell(p.week)}${cell(p.month)}${cell(p.all)}
+      <td style="text-align:right"><button class="ghost" onclick="event.stopPropagation();unarchiveProject(${p.id})">Unarchive</button></td>
+    </tr>`).join('');
+  return `<div class="card"><h2>📦 Archived <span style="text-transform:none;font-weight:400;color:var(--muted)">(${rows.length})</span></h2>
+    <div class="scroll"><table>
+      <tr><th>Project</th><th style="text-align:right">Today</th><th style="text-align:right">7 days</th><th style="text-align:right">30 days</th><th style="text-align:right">All time</th><th></th></tr>
+      ${trs}
+    </table></div>
+    <div style="font-size:12px;color:var(--muted);margin-top:6px">Archived projects keep their full history and page, and their time still rolls up into parent totals — they're just kept out of the main list and pickers. Archive a project from its page or in Rules &amp; Settings.</div></div>`;
+}
+
+async function renderProjects() {
+  return swr('projects',
+    () => Promise.all([api('/api/project_report'), projectsReady]),
+    ([rep]) => buildProjectsHtml(rep));
+}
+function buildProjectsHtml(rep) {
+  const active = rep.filter(p => !p.archived)
+    .map(p => ({...p, children: (p.children || []).filter(k => !k.archived)}));
+  const opts = projectOptions();
+  const localToday = new Date(Date.now() - new Date().getTimezoneOffset()*60000).toISOString().slice(0,10);
+
+  const rk = rangeKey(), field = REPORT_FIELD[rk];
+  const label = RANGES.find(r => r.key === rk).label;
+  const bars = active.filter(p => p[field] > 0 || p.pinned)
+    .map(p => ({id: p.id, name: p.name, seconds: p[field],
+                children: p.children.filter(k => k[field] > 0).sort((a, b) => b[field] - a[field])
+                  .map(k => ({id: k.id, name: k.name, seconds: k[field]}))}))
+    .map(b => ({...b, pinned: active.find(p => p.id === b.id).pinned}))
+    .sort((a, b) => (b.pinned || 0) - (a.pinned || 0) || b.seconds - a.seconds);
+  const total = bars.reduce((s, p) => s + p.seconds, 0);
+
+  return `
+    <div class="card"><h2>Time by project — ${esc(label)} <span style="text-transform:none;font-weight:400;color:var(--muted)">· ${fmtD(total)} across ${bars.length} project${bars.length === 1 ? '' : 's'} · switch range at the top</span></h2>
+      ${barRows(bars, colorOf, it => it.id, true)}
+      <div style="font-size:11px;color:var(--muted);margin-top:6px">📌 Click the pin next to any project to keep it at the top of every list.</div></div>
+    <div class="card"><h2>All projects — exact totals <span style="text-transform:none;font-weight:400;color:var(--muted)">(click one for the full breakdown)</span></h2>
+      ${projectReportHtml(active, field)}</div>
+    <div class="card"><h2>Log offline time <span style="text-transform:none;font-weight:400;color:var(--muted)">— work done away from this Mac</span></h2>
+      <div class="formrow">
+        <select id="mtProject">${opts || '<option value="">create a project first</option>'}</select>
+        <input type="date" id="mtDate" value="${localToday}">
+        <input type="time" id="mtTime" value="09:00">
+        <input type="number" id="mtHours" min="0.25" step="0.25" value="1" style="width:74px" title="hours">
+        <span style="font-size:12px;color:var(--muted)">hours</span>
+        <input id="mtNote" placeholder="note, e.g. reading on the couch" style="min-width:210px">
+        <button class="act" onclick="addManualTime()">Log time</button>
+      </div>
+      <div style="font-size:12px;color:var(--muted)">Counts straight into the project's totals. Avoid overlapping time this Mac already tracked, or it counts twice. Entries can be reviewed and removed on each project's page.</div></div>
+    <div class="card"><h2>Merge two projects</h2>
+      <div class="formrow">
+        <select id="mgFrom">${opts}</select>
+        <span style="font-size:13px;color:var(--ink-2)">into</span>
+        <select id="mgTo">${opts}</select>
+        <button class="act" onclick="mergeProjects()">Merge</button>
+      </div>
+      <div style="font-size:12px;color:var(--muted)">Moves all rules, assigned time, logged time, sessions and sub-projects from the first project into the second, then deletes the first. Use when two projects are really the same thing (e.g. "Time Tracker Web App" and "Local Time Tracker"). This can't be undone.</div></div>
+    ${archivedSectionHtml(rep)}`;
+}
+window.archiveProject = async id => {
+  const p = state.projects.find(x => x.id === id);
+  if (!confirm(`Archive "${p ? p.name : 'this project'}"?\n\nIt moves to the Archived section along with all its sub-projects. History, rules and roll-up totals are kept — you can unarchive any time.`)) return;
+  try { await api(`/api/projects/${id}/archive`, {method:'POST'}); } catch (e) { alert(e.message); }
+  render();
+};
+window.togglePin = async (id, pin) => {
+  // Optimistic: flip the flag in the cached data and repaint the Projects page
+  // at once; the server round trip + refetch then just confirms it.
+  const flip = x => { if (x && x.id === id) x.pinned = pin; };
+  const p = state.projects.find(x => x.id === id);
+  if (p) p.pinned = pin ? 1 : 0;   // pickers read state.projects
+  const rep = dataCache['projects'] && dataCache['projects'][0];
+  if (rep) rep.forEach(x => { flip(x); (x.children || []).forEach(flip); });
+  if (rep && paintedKey === 'projects') paint(buildProjectsHtml(rep));
+  try { await api(`/api/projects/${id}/${pin ? 'pin' : 'unpin'}`, {method:'POST'}); }
+  catch (e) { alert(e.message); }
+  render();
+};
+window.unarchiveProject = async id => {
+  try { await api(`/api/projects/${id}/unarchive`, {method:'POST'}); } catch (e) { alert(e.message); }
+  render();
+};
+window.mergeProjects = async () => {
+  const a = +$('#mgFrom').value, b = +$('#mgTo').value;
+  if (!a || !b || a === b) { alert('Pick two different projects.'); return; }
+  const an = state.projects.find(p => p.id === a)?.name, bn = state.projects.find(p => p.id === b)?.name;
+  if (!confirm(`Merge "${an}" into "${bn}"?\n\nAll rules, assigned time, logged time, sessions and sub-projects of "${an}" move to "${bn}", then "${an}" is deleted. This can't be undone.`)) return;
+  try {
+    const r = await api('/api/projects/merge', {method:'POST', body: JSON.stringify({source_id: a, target_id: b})});
+    alert(`Merged "${r.source}" into "${r.target}" — moved ${r.moved.rules} rule(s), ${r.moved.assignments} assignment(s), ${r.moved.manual_entries} logged entr(ies), ${r.moved.sessions} session(s), ${r.moved.subprojects} sub-project(s).`);
+  } catch (e) { alert(e.message); }
+  render();
+};
+
+// ---- SESSIONS ---------------------------------------------------------------
+let sessionTimer = null;
+async function renderSessions() {
+  return swr('sessions',
+    () => Promise.all([api('/api/sessions'), projectsReady]),
+    ([sessions]) => buildSessionsHtml(sessions));
+}
+function buildSessionsHtml(sessions) {
+  const open = sessions.find(x => !x.end_ts);
+  const projOpts = activeProjects().map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join('');
+
+  const meter = m => {
+    const t = Math.max(m.duration_seconds, 1);
+    const seg = (v, c) => v > 0 ? `<div style="flex:${v/t};background:${c}"></div>` : '';
+    return `<div class="meter">${seg(m.focus_seconds,'var(--s1)')}${seg(m.other_seconds,'var(--s3)')}${seg(m.afk_seconds,'var(--afk)')}</div>`;
+  };
+
+  const rows = sessions.filter(x => x.end_ts).map(x => {
+    const m = x.metrics;
+    return `<tr style="cursor:pointer" onclick="openSession(${x.id})" title="click for the full breakdown">
+      <td>${fmtDT(x.start_ts)}</td>
+      <td>${esc(x.label || '')} <span style="color:var(--muted);font-size:11px">›</span><br><span class="chip">${esc(x.project_name || 'no project')}</span></td>
+      <td class="num">${fmtD(m.duration_seconds)}${x.planned_minutes ? ` / ${x.planned_minutes}m planned` : ''}</td>
+      <td style="min-width:180px">${meter(m)}
+        <div style="font-size:11px;color:var(--ink-2);margin-top:3px">
+          focus ${fmtD(m.focus_seconds)} · other ${fmtD(m.other_seconds)} · idle ${fmtD(m.afk_seconds)}</div></td>
+      <td class="num">${m.focus_pct !== null ? m.focus_pct + '%' : '—'}</td>
+      <td class="num" title="${fmtD(m.ai_seconds)} AI-assisted">${m.ai_pct !== null ? m.ai_pct + '%' : '—'}</td>
+      <td>${m.top_distractions.slice(0,3).map(d=>`<span class="chip">${esc(d.name)} ${fmtD(d.seconds)}</span>`).join('')}</td>
+      <td><button class="ghost" onclick="event.stopPropagation();delSession(${x.id})">✕</button></td>
+    </tr>`;
+  }).join('');
+
+  let live = '';
+  if (open) {
+    const m = open.metrics;
+    live = `<div class="card">
+      <h2><span class="live-dot"></span>Session running — ${esc(open.label || open.project_name || 'unlabeled')}</h2>
+      <div style="display:flex;gap:28px;align-items:center;flex-wrap:wrap">
+        <div><div class="focuspct">${m.focus_pct !== null ? m.focus_pct + '%' : '—'}</div><div style="font-size:12px;color:var(--muted)">focused</div></div>
+        <div style="flex:1;min-width:220px">${meter(m)}
+          <div style="font-size:12px;color:var(--ink-2);margin-top:4px">
+            ${fmtD(m.duration_seconds)} elapsed${open.planned_minutes ? ' of ' + open.planned_minutes + 'm planned' : ''}
+            · focus ${fmtD(m.focus_seconds)} · elsewhere ${fmtD(m.other_seconds)} · idle ${fmtD(m.afk_seconds)}
+            · AI ${fmtD(m.ai_seconds)}${m.ai_pct !== null ? ` (${m.ai_pct}%)` : ''}</div></div>
+        <button class="act" onclick="stopSession(${open.id})">Stop session</button>
+        <button class="ghost" onclick="openSession(${open.id})">Details →</button>
+      </div>
+      ${m.top_distractions.length ? `<div style="margin-top:10px;font-size:12px;color:var(--ink-2)">Pulling you away: ${m.top_distractions.slice(0,4).map(d=>`<span class="chip">${esc(d.name)} ${fmtD(d.seconds)}</span>`).join('')}</div>` : ''}
+    </div>`;
+    clearTimeout(sessionTimer);
+    sessionTimer = setTimeout(() => { if (state.tab === 'sessions') render(); }, 20000);
+  }
+
+  return `
+    ${live || `<div class="card"><h2>Start a focus session</h2>
+      <div class="formrow">
+        <select id="ssProject"><option value="">— subject / project —</option>${projOpts}</select>
+        <input id="ssLabel" placeholder="label, e.g. ML week 4 reading" style="min-width:220px">
+        <select id="ssMins"><option value="">no target</option><option>25</option><option>45</option><option value="60" selected>60</option><option>90</option><option>120</option></select>
+        <button class="act" onclick="startSession()">Start</button>
+      </div>
+      <div style="font-size:12px;color:var(--muted)">Focus % = time spent on apps/sites/files matching the chosen subject's rules (or manually assigned to it) while the session runs.</div>
+    </div>`}
+    <div class="card"><h2>Past sessions</h2>
+      <div class="scroll"><table>
+        <tr><th>When</th><th>Session</th><th>Length</th><th>Where the time went</th><th>Focus</th><th>AI</th><th>Top distractions</th><th></th></tr>
+        ${rows || '<tr><td colspan="8" class="empty">No sessions yet.</td></tr>'}
+      </table></div></div>`;
+}
+window.startSession = async () => {
+  const pid = $('#ssProject').value, mins = $('#ssMins').value;
+  await api('/api/sessions', {method:'POST', body: JSON.stringify({
+    project_id: pid ? +pid : null, label: $('#ssLabel').value || null,
+    planned_minutes: mins ? +mins : null })});
+  render();
+};
+window.stopSession = async id => { await api(`/api/sessions/${id}/stop`, {method:'POST'}); render(); };
+window.delSession = async id => { if (confirm('Delete this session?')) { await api(`/api/sessions/${id}`, {method:'DELETE'}); if (state.sessionDetail === id) state.sessionDetail = null; nav(); } };
+window.openSession = id => { state.sessionDetail = id; state.tab = 'sessions'; nav(); };
+window.closeSession = () => { state.sessionDetail = null; nav(); };
+
+// ---- SESSION DETAIL --------------------------------------------------------
+async function renderSessionDetail() {
+  const id = state.sessionDetail;
+  return swr(`sd|${id}`,
+    () => Promise.all([api(`/api/session_detail?id=${id}`), projectsReady]).then(([d]) => [d]),
+    ([d]) => buildSessionDetailHtml(d));
+}
+function sessionTimelineHtml(d) {
+  const tls = d.timeline;
+  if (!tls.length) return '';
+  const t0 = tls[0].start, t1 = Math.max(tls[tls.length - 1].end, t0 + 60);
+  const span = t1 - t0;
+  const blocks = tls.map((e, i) => {
+    const l = 100*(e.start-t0)/span, w = Math.max(0.15, 100*(e.end-e.start)/span);
+    return `<div class="blk" style="left:${l}%;width:${w}%;background:${colorOf(e.afk?'AFK':e.category)}"
+      onmousemove='showTip(event, stlTip(${i}))' onmouseleave="hideTip()"
+      onclick="stlAssign(${i})"></div>`;
+  }).join('');
+  const ticks = Array.from({length: 5}, (_, i) => fmtT(t0 + span*i/4));
+  const cats = [...new Set(tls.map(e => e.afk ? 'AFK' : e.category))];
+  window._stl = tls;
+  window.stlTip = i => { const e = _stl[i]; return JSON.stringify(
+    `<div class='t1'>${esc(e.app)} · ${fmtD(e.end-e.start)}</div>`+
+    `<div class='t2'>${esc(e.title || e.url || '')}</div>`+
+    `<div class='t2'>${fmtT(e.start)}–${fmtT(e.end)} · ${esc(e.category)}${e.project ? ' · ' + esc(e.project) : ''}</div>`
+  ).slice(1,-1); };
+  window.stlAssign = i => { const e = _stl[i]; if (!e.afk) openAssign(e.start, e.end, `${e.app} — ${e.title || e.url || ''}`); };
+  return `<div class="card"><h2>Session timeline <span style="text-transform:none;font-weight:400;color:var(--muted)">(click a block to assign it to a project)</span></h2>
+    <div class="tl-wrap"><div class="tl">${blocks}</div>
+    <div class="tl-hours">${ticks.map(h=>`<span>${h}</span>`).join('')}</div>
+    <div class="legend">${cats.map(c=>`<span><span class="swatch" style="background:${colorOf(c)}"></span>${esc(c)}</span>`).join('')}</div></div></div>`;
+}
+function buildSessionDetailHtml(d) {
+  const s = d.session, m = d.metrics, ff = d.focus_facts;
+  const end = s.end_ts || (Date.now()/1000);
+  const planned = s.planned_minutes ? s.planned_minutes * 60 : null;
+  const planSub = planned
+    ? (m.duration_seconds >= planned ? `hit the ${s.planned_minutes}m target ✓` : `of ${s.planned_minutes}m planned`)
+    : 'no target set';
+  const seg = (v, c) => v > 0 ? `<div style="flex:${v/Math.max(m.duration_seconds,1)};background:${c}"></div>` : '';
+  const meter = `<div class="meter" style="margin:2px 0 6px">${seg(m.focus_seconds,'var(--s1)')}${seg(m.other_seconds,'var(--s3)')}${seg(m.afk_seconds,'var(--afk)')}</div>
+    <div class="legend" style="margin-top:4px">
+      ${s.project_id ? `<span><span class="swatch" style="background:var(--s1)"></span>on ${esc(s.project_name)} ${fmtD(m.focus_seconds)}</span>` : ''}
+      <span><span class="swatch" style="background:var(--s3)"></span>${s.project_id ? 'elsewhere' : 'distractions'} ${fmtD(m.other_seconds)}</span>
+      <span><span class="swatch" style="background:var(--afk)"></span>idle ${fmtD(m.afk_seconds)}</span></div>`;
+  const vRows = d.visits.map(v => `<tr>
+      <td class="num">${fmtT(v.start_ts)}–${fmtT(v.end_ts)}</td>
+      <td>${esc(v.domain || v.app || '?')}</td>
+      <td class="num">${fmtD(v.active_seconds)}</td>
+      <td style="color:var(--ink-2)">${v.titles.slice(0,3).map(t=>`<span class="chip">${esc(t)}</span>`).join(' ')}</td>
+    </tr>`).join('');
+  const distractCard = m.top_distractions.length
+    ? `<div class="card"><h2>${s.project_id ? 'What pulled you away' : 'Distractions'}</h2>
+        ${barRows(m.top_distractions, () => 'var(--s6)')}
+        <div style="font-size:11px;color:var(--muted);margin-top:6px">${s.project_id
+          ? `Time not matching ${esc(s.project_name)}'s rules or assignments while the session ran.`
+          : 'Time in your distraction categories during the session.'}</div></div>`
+    : `<div class="card"><h2>${s.project_id ? 'What pulled you away' : 'Distractions'}</h2>
+        <div class="empty">Nothing pulled you away. 🎉</div></div>`;
+  return `
+    <div class="formrow" style="flex-wrap:wrap"><button class="ghost" onclick="closeSession()">← All sessions</button>
+      <h1 style="font-size:16px">${s.running ? '<span class="live-dot"></span>' : ''}${esc(s.label || s.project_name || 'Unlabeled session')}</h1>
+      ${s.project_id ? `<button class="ghost" onclick="openProject(${s.project_id})">${esc(s.project_name)} ›</button>` : '<span class="chip">no project</span>'}
+      <span style="font-size:13px;color:var(--ink-2)">${fmtDT(s.start_ts)} → ${s.running ? 'now' : fmtT(s.end_ts)}</span>
+      <span class="spacer"></span>
+      ${s.running ? `<button class="act" onclick="stopSession(${s.id})">Stop session</button>`
+                  : `<button class="ghost" onclick="delSession(${s.id})">✕ Delete</button>`}</div>
+    <div class="tiles">
+      <div class="tile"><div class="l">Length</div><div class="v">${fmtD(m.duration_seconds)}</div><div class="sub">${planSub}</div></div>
+      <div class="tile"><div class="l">Focused</div><div class="v">${m.focus_pct !== null ? m.focus_pct + '%' : '—'}</div><div class="sub">${s.project_id ? `${fmtD(m.focus_seconds)} on ${esc(s.project_name)}` : 'no target project'}</div></div>
+      <div class="tile"><div class="l">AI-assisted</div><div class="v">${m.ai_pct !== null ? m.ai_pct + '%' : '—'}</div><div class="sub">${fmtD(m.ai_seconds)} of active time</div></div>
+      <div class="tile"><div class="l">Deep work</div><div class="v">${fmtD(ff.deep_seconds)}</div><div class="sub">${ff.deep_blocks ? `${ff.deep_blocks} block${ff.deep_blocks===1?'':'s'} ≥ ${ff.deep_threshold_minutes}m` : `no blocks ≥ ${ff.deep_threshold_minutes}m`}</div></div>
+      <div class="tile"><div class="l">Longest streak</div><div class="v">${fmtD(ff.longest_streak_seconds)}</div><div class="sub">on one site/app unbroken</div></div>
+      <div class="tile"><div class="l">Switches</div><div class="v">${ff.switches}</div><div class="sub">${ff.switches_per_hour !== null ? ff.switches_per_hour + ' per hour' : 'app/site changes'}</div></div>
+    </div>
+    <div class="card"><h2>Where the time went</h2>${meter}</div>
+    ${sessionTimelineHtml(d)}
+    <div class="grid2">
+      ${distractCard}
+      <div class="card"><h2>By category</h2>${barRows(d.by_category, colorOf)}</div>
+      <div class="card"><h2>By project</h2>${d.by_project.length ? barRows(d.by_project, colorOf) : '<div class="empty">No project-matched time in this session.</div>'}</div>
+      ${d.ai_by_tool.length ? `<div class="card"><h2>AI tools used</h2>${barRows(d.ai_by_tool, () => 'var(--s5)')}</div>`
+        : `<div class="card"><h2>Top apps</h2>${barRows(d.by_app.slice(0,8), colorOf)}</div>`}
+      ${d.ai_by_tool.length ? `<div class="card"><h2>Top apps</h2>${barRows(d.by_app.slice(0,8), colorOf)}</div>` : ''}
+      ${d.by_domain.length ? `<div class="card"><h2>Top sites</h2>${barRows(d.by_domain.slice(0,8), colorOf)}</div>` : ''}
+    </div>
+    <div class="card"><h2>Top pages & files</h2>${d.by_title.length ? barRows(d.by_title, () => 'var(--s1)') : '<div class="empty">No window titles recorded.</div>'}</div>
+    <div class="card"><h2>How it unfolded — visit blocks</h2>
+      <div class="scroll"><table>
+        <tr><th>When</th><th>Site / app</th><th>Active</th><th>What</th></tr>
+        ${vRows || '<tr><td colspan="4" class="empty">No activity recorded during this session.</td></tr>'}
+      </table></div>
+      <div style="font-size:11px;color:var(--muted);margin-top:6px">A visit = consecutive time on one site or app, absorbing interruptions under 3 minutes. Active = time actually on it within the block.</div></div>
+    ${s.running ? scheduleSessionDetailRefresh(s.id) : ''}`;
+}
+function scheduleSessionDetailRefresh(id) {
+  clearTimeout(sessionTimer);
+  sessionTimer = setTimeout(() => {
+    if (state.tab === 'sessions' && state.sessionDetail === id) render();
+  }, 20000);
+  return '';
+}
+
+// ---- ACTIVITY ---------------------------------------------------------------
+let activityView = 'visits';   // 'visits' | 'raw'
+let aiResult = null;
+// Shared Prev/Next pager: slices `count` items into pages of `size`, clamps
+// `page`, returns {lo, hi, page, html}. `goFn` is the window handler name, `noun`
+// labels the count. Callers assign the returned `page` back to their page state.
+function pagerBar(count, page, size, goFn, noun) {
+  const pages = Math.max(1, Math.ceil(count / size));
+  page = Math.min(Math.max(0, page), pages - 1);
+  const lo = page * size;
+  const html = pages > 1 ? `<div class="formrow" style="margin:10px 0 0">
+      <button class="ghost" onclick="${goFn}(${page-1})" ${page===0?'disabled':''}>← Prev</button>
+      <span style="font-size:12px;color:var(--muted)">page ${page+1} of ${pages} · ${count} ${noun}</span>
+      <button class="ghost" onclick="${goFn}(${page+1})" ${page===pages-1?'disabled':''}>Next →</button>
+    </div>` : '';
+  return {lo, hi: lo + size, page, html};
+}
+
+let actPage = 0;
+const ACT_PAGE = 50;
+let maPage = 0;
+const MA_PAGE = 20;   // manual assignments per page
+
+const actKey = () => `activity|${rangeKey()}|${curRange()[0]}`;
+async function renderActivity() {
+  const [start, end] = curRange();
+  return swr(actKey(),
+    () => Promise.all([
+      api(`/api/visits?start=${start}&end=${end}`),
+      api(`/api/events?start=${start}&end=${end}&limit=1000`),
+      api(`/api/assignments?start=${start}&end=${end}`),
+      api('/api/ai/models'),
+      projectsReady]),
+    d => buildActivityHtml(d));
+}
+function buildActivityHtml([visits, events, assigns, models]) {
+  window._ev = events; window._vis = visits;
+
+  const list = activityView === 'visits' ? visits : events;
+  const actP = pagerBar(list.length, actPage, ACT_PAGE, 'actGo', 'rows');
+  actPage = actP.page;
+  const lo = actP.lo, hi = actP.hi;
+
+  const vrows = visits.slice(lo, hi).map((v,j) => { const i = lo + j; return `<tr>
+      <td class="num">${fmtDT(v.start_ts)} → ${fmtT(v.end_ts)}</td>
+      <td class="num" title="${fmtD(v.end_ts - v.start_ts)} span">${fmtD(v.active_seconds)}</td>
+      <td>${esc(v.domain || v.app)}</td>
+      <td style="max-width:340px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc((v.titles||[]).join(' | '))}">${esc(v.titles[0] || v.url || '')}</td>
+      <td>${v.categories.map(c=>`<span class="chip">${esc(c)}</span>`).join('')}${v.projects.map(p=>`<span class="chip" style="border-color:${colorOf(p)}">${esc(p)}</span>`).join('')}</td>
+      <td style="white-space:nowrap"><button class="ghost" onclick="visAssign(${i})">assign</button><button class="ghost" title="delete this whole block from tracking" onclick="delVisit(${i})">✕</button></td>
+    </tr>`; }).join('');
+
+  const erows = events.slice(lo, hi).map((e,j) => { const i = lo + j; return `<tr>
+      <td><input type="checkbox" class="evsel" value="${e.id}" onchange="updateBulkBar()"></td>
+      <td class="num">${fmtDT(e.start)}</td>
+      <td class="num">${fmtD(e.seconds)}</td>
+      <td>${esc(e.app)}</td>
+      <td style="max-width:340px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(e.title || e.url)}">${esc(e.title || e.url || '')}</td>
+      <td><span class="chip">${esc(e.category)}</span>${e.projects.map(p=>`<span class="chip" style="border-color:${colorOf(p)}">${esc(p)}</span>`).join('')}</td>
+      <td style="white-space:nowrap"><button class="ghost" onclick="evAssign(${i})">assign</button><button class="ghost" title="delete this event from tracking" onclick="delEvent(${e.id})">✕</button></td>
+    </tr>`; }).join('');
+
+  const maP = pagerBar(assigns.length, maPage, MA_PAGE, 'maGo', 'assignments');
+  maPage = maP.page;
+  const arows = assigns.slice(maP.lo, maP.hi).map(a => `<tr>
+      <td class="num">${fmtDT(a.start_ts)} → ${fmtT(a.end_ts)}</td>
+      <td class="num">${fmtD(a.end_ts - a.start_ts)}</td>
+      <td><span class="chip">${esc(a.project_name)}</span></td>
+      <td>${esc(a.note || '')}</td>
+      <td><button class="ghost" onclick="delAssign(${a.id})">✕</button></td>
+    </tr>`).join('');
+
+  const modelOpts = models.models.map(m =>
+    `<option value="${m.id}" ${m.id===models.selected?'selected':''} ${m.available?'':'disabled'}>${esc(m.label)}${m.available?'':' — needs key'}</option>`).join('');
+
+  return `
+    <div class="card"><h2>🔎 Search history</h2>
+      <div class="formrow" style="margin-bottom:0">
+        <input id="srchQ" placeholder="search window titles, pages, sites, apps…" style="min-width:300px" onkeydown="if(event.key==='Enter')doSearch()">
+        <button class="act" onclick="doSearch()">Search</button>
+        <span style="font-size:12px;color:var(--muted)">searches all history, not just the selected range</span>
+      </div>
+      <div id="srchOut"></div></div>
+    <div class="card"><h2>✨ AI categorize</h2>
+      <div class="formrow">
+        <select id="aiModel">${modelOpts}</select>
+        <button class="act" id="aiGo" onclick="aiPropose()">Analyze this range</button>
+        <button class="act" id="aiSuggest" onclick="aiSuggestProjects()">💡 Suggest new projects (7 days)</button>
+        <span style="font-size:12px;color:var(--muted)">Finds unclassified time and proposes which project it belongs to — or suggests brand-new projects from recurring themes in the last week. Nothing is saved until you approve.</span>
+      </div>
+      <div class="formrow">
+        <input id="aiDesc" placeholder="or describe a project — e.g. 'migrating the legacy PHP app to Postgres'" style="min-width:360px;flex:1" onkeydown="if(event.key==='Enter')aiFindProject()">
+        <button class="act" id="aiFind" onclick="aiFindProject()">Find its time & rules</button>
+        <span style="font-size:12px;color:var(--muted)">scans the last 30 days of unattributed time for matching work and proposes a project + rules</span>
+      </div>
+      <div id="aiOut">${aiResult ? aiProposalsHtml(aiResult) : ''}</div></div>
+    <div class="card"><h2>Activity
+      <span style="text-transform:none;font-weight:400;margin-left:10px">
+        <button class="ghost" onclick="setActView('visits')" ${activityView==='visits'?'style="color:var(--ink-1);font-weight:600"':''}>grouped</button>
+        <button class="ghost" onclick="setActView('raw')" ${activityView==='raw'?'style="color:var(--ink-1);font-weight:600"':''}>raw events</button>
+      </span></h2>
+      ${activityView === 'raw' ? `<div class="formrow" id="bulkBar" style="display:none">
+        <span id="bulkCount" style="font-size:12px;color:var(--ink-2)"></span>
+        <button class="ghost" onclick="bulkAssign()">Assign selected…</button>
+        <button class="ghost" onclick="bulkDelete()">✕ Delete selected</button>
+      </div>` : ''}
+      <div class="scroll"><table>
+        ${activityView === 'visits'
+          ? `<tr><th>When</th><th>Active</th><th>Site / app</th><th>What</th><th>Classified as</th><th></th></tr>${vrows || '<tr><td colspan="6" class="empty">No activity in this range.</td></tr>'}`
+          : `<tr><th><input type="checkbox" title="select all" onchange="selAllEv(this.checked)"></th><th>Start</th><th>Length</th><th>App</th><th>Window / page</th><th>Classified as</th><th></th></tr>${erows || '<tr><td colspan="7" class="empty">No activity in this range.</td></tr>'}`}
+      </table></div>${actP.html}</div>
+    <div class="card"><h2>Manual assignments in this range</h2>
+      <div class="scroll"><table>
+        <tr><th>Range</th><th>Length</th><th>Project</th><th>Note</th><th></th></tr>
+        ${arows || '<tr><td colspan="5" class="empty">None.</td></tr>'}
+      </table></div>${maP.html}</div>`;
+}
+// Paging & the grouped/raw toggle rebuild from the already-fetched data — no refetch.
+const actRepaint = () => {
+  const d = dataCache[actKey()];
+  d ? paint(buildActivityHtml(d)) : render();
+};
+window.setActView = v => { activityView = v; actPage = 0; actRepaint(); };
+window.actGo = p => { actPage = p; actRepaint(); };
+window.maGo = p => { maPage = p; actRepaint(); };
+window.evAssign = i => { const e = _ev[i]; openAssign(e.start, e.end, `${e.app} — ${e.title || e.url || ''}`); };
+window.visAssign = i => {
+  const v = _vis[i];
+  visitToAssign = v;
+  openAssign(v.start_ts, v.end_ts, `${v.domain || v.app} — ${fmtD(v.active_seconds)} active`);
+};
+window.delAssign = async id => { await api(`/api/assignments/${id}`, {method:'DELETE'}); render(); };
+
+// ---- event delete & bulk actions -------------------------------------------
+window.delEvent = async id => {
+  if (!confirm('Delete this event from tracking? This can\'t be undone.')) return;
+  await api(`/api/events/${id}`, {method:'DELETE'}); render();
+};
+window.delVisit = async i => {
+  const v = _vis[i];
+  if (!confirm(`Delete this whole block (${v.event_ids.length} events, ${fmtD(v.active_seconds)} active) from tracking? This can't be undone.`)) return;
+  await api('/api/events/delete', {method:'POST', body: JSON.stringify({ids: v.event_ids})});
+  render();
+};
+const selEvIds = () => [...document.querySelectorAll('.evsel:checked')].map(cb => +cb.value);
+window.updateBulkBar = () => {
+  const bar = $('#bulkBar'); if (!bar) return;
+  const n = selEvIds().length;
+  bar.style.display = n ? 'flex' : 'none';
+  $('#bulkCount').textContent = `${n} event${n===1?'':'s'} selected`;
+};
+window.selAllEv = on => { document.querySelectorAll('.evsel').forEach(cb => cb.checked = on); updateBulkBar(); };
+window.bulkDelete = async () => {
+  const ids = selEvIds(); if (!ids.length) return;
+  if (!confirm(`Delete ${ids.length} event(s) from tracking? This can't be undone.`)) return;
+  await api('/api/events/delete', {method:'POST', body: JSON.stringify({ids})});
+  render();
+};
+window.bulkAssign = () => {
+  const ids = selEvIds(); if (!ids.length) return;
+  const sel = _ev.filter(e => ids.includes(e.id));
+  bulkEventIds = ids;
+  openAssign(Math.min(...sel.map(e=>e.start)), Math.max(...sel.map(e=>e.end)), `${ids.length} selected events`);
+};
+
+let srchPage = 0;
+const SRCH_PAGE = 25;
+window.doSearch = async () => {
+  const q = $('#srchQ').value.trim(); if (!q) return;
+  $('#srchOut').innerHTML = '<div class="empty">searching…</div>';
+  try {
+    const r = await api(`/api/search?q=${encodeURIComponent(q)}`);
+    if (!r.count) { $('#srchOut').innerHTML = '<div class="empty">No matches in your history.</div>'; return; }
+    window._srchR = r; srchPage = 0;
+    srchRender();
+  } catch (e) { $('#srchOut').innerHTML = `<div class="empty">Failed: ${esc(e.message)}</div>`; }
+};
+function srchRender() {
+  const r = window._srchR;
+  const sp = pagerBar(r.visits.length, srchPage, SRCH_PAGE, 'srchGo', 'sessions');
+  srchPage = sp.page;
+  const lo = sp.lo;
+  $('#srchOut').innerHTML = `
+    <div style="font-size:13px;color:var(--ink-2);margin:10px 0 6px">
+      <b>${fmtD(r.total_seconds)}</b> matching “${esc(r.query)}” — ${r.count} event${r.count===1?'':'s'} grouped into <b>${r.visits.length}</b> session${r.visits.length===1?'':'s'}${r.count > r.events_grouped ? ` (grouped from the latest ${r.events_grouped})` : ''}</div>
+    <div class="scroll"><table>
+      <tr><th>When</th><th>Active</th><th>Site / app</th><th>What</th><th></th></tr>
+      ${r.visits.slice(lo, lo + SRCH_PAGE).map((v,j) => { const i = lo + j; return `<tr>
+        <td class="num">${fmtDT(v.start_ts)} → ${fmtT(v.end_ts)}</td>
+        <td class="num" title="${fmtD(v.end_ts - v.start_ts)} span">${fmtD(v.active_seconds)}</td>
+        <td>${esc(v.domain || v.app)}</td>
+        <td style="max-width:380px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc((v.titles||[]).join(' | '))}">${esc(v.titles[0] || v.url || '')}</td>
+        <td><button class="ghost" onclick="srchAssign(${i})">assign</button></td></tr>`; }).join('')}
+    </table></div>${sp.html}`;
+}
+window.srchGo = p => { srchPage = p; srchRender(); };
+window.srchAssign = i => {
+  const v = _srchR.visits[i];
+  visitToAssign = v;   // assign only this session's own events
+  openAssign(v.start_ts, v.end_ts, `${v.domain || v.app} — ${fmtD(v.active_seconds)} active`);
+};
+
+window.aiFindProject = async () => {
+  const desc = $('#aiDesc').value.trim(); if (!desc) return;
+  const end = Date.now()/1000, start = end - 30*86400;
+  const btn = $('#aiFind'); btn.disabled = true; btn.textContent = 'analyzing…';
+  $('#aiOut').innerHTML = '<div class="empty">Scanning the last 30 days of unattributed time for matching work…</div>';
+  try {
+    const r = await api('/api/ai/find_project', {method:'POST',
+      body: JSON.stringify({description: desc, start, end, model: $('#aiModel').value})});
+    $('#aiOut').innerHTML = r.suggestions.length ? suggestionsHtml(r)
+      : `<div class="empty">Looked at ${r.visits_considered} unattributed blocks — nothing clearly matched that description.</div>`;
+  } catch (e) { $('#aiOut').innerHTML = `<div class="empty">Failed: ${esc(e.message)}</div>`; }
+  btn.disabled = false; btn.textContent = 'Find its time & rules';
+};
+
+window.aiPropose = async () => {
+  const [start, end] = curRange();
+  const btn = $('#aiGo'); btn.disabled = true; btn.textContent = 'analyzing…';
+  $('#aiOut').innerHTML = '<div class="empty">Asking the model — this can take up to a minute…</div>';
+  try {
+    aiResult = await api('/api/ai/propose', {method:'POST',
+      body: JSON.stringify({start, end, model: $('#aiModel').value})});
+    $('#aiOut').innerHTML = aiProposalsHtml(aiResult);
+  } catch (e) { $('#aiOut').innerHTML = `<div class="empty">Failed: ${esc(e.message)}</div>`; }
+  btn.disabled = false; btn.textContent = 'Analyze this range';
+};
+
+function aiProposalsHtml(r) {
+  if (!r.proposals.length)
+    return `<div class="empty">Looked at ${r.visits_considered} unclassified blocks — nothing clearly belongs to a project.</div>`;
+  window._props = r.proposals;
+  return r.proposals.map((p, pi) => `
+    <div style="border:1px solid var(--grid);border-radius:8px;padding:10px 12px;margin-top:10px">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <b>${esc(p.project_name)}</b>
+        <span style="color:var(--ink-2)">${fmtD(p.total_seconds)} across ${p.items.length} block${p.items.length>1?'s':''}</span>
+        <span class="spacer"></span>
+        <button class="act" onclick="aiApply(${pi}, this)">Approve & assign</button>
+      </div>
+      <table style="margin-top:6px">
+        ${p.items.map(it => `<tr>
+          <td class="num">${fmtDT(it.start)}</td>
+          <td class="num">${fmtD(it.seconds)}</td>
+          <td>${esc(it.domain || it.app)}</td>
+          <td style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(it.reason)}">${esc(it.title)}</td>
+          <td><span class="chip">${esc(it.confidence)}</span></td></tr>`).join('')}
+      </table>
+    </div>`).join('') +
+    `<div style="margin-top:10px;font-size:12px;color:var(--muted)">Model: ${esc(r.model)} · reviewed ${r.visits_considered} blocks · hover a row for the model's reasoning</div>`;
+}
+window.aiSuggestProjects = async () => {
+  const end = Date.now()/1000, start = end - 7*86400;
+  const btn = $('#aiSuggest'); btn.disabled = true; btn.textContent = 'analyzing…';
+  $('#aiOut').innerHTML = '<div class="empty">Looking for recurring themes in the last 7 days of unattributed time…</div>';
+  try {
+    const r = await api('/api/ai/suggest_projects', {method:'POST',
+      body: JSON.stringify({start, end, model: $('#aiModel').value})});
+    $('#aiOut').innerHTML = suggestionsHtml(r);
+  } catch (e) { $('#aiOut').innerHTML = `<div class="empty">Failed: ${esc(e.message)}</div>`; }
+  btn.disabled = false; btn.textContent = '💡 Suggest new projects (7 days)';
+};
+
+function suggestionsHtml(r) {
+  if (!r.suggestions.length)
+    return `<div class="empty">Looked at ${r.visits_considered} unattributed blocks — no recurring theme stood out as a new project.</div>`;
+  window._sugs = r.suggestions;
+  return r.suggestions.map((s, si) => `
+    <div style="border:1px solid var(--grid);border-radius:8px;padding:10px 12px;margin-top:10px">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        ${r.suggestions.length > 1 ? `<input type="checkbox" class="sugsel" value="${si}" title="tick to combine with another suggestion">` : ''}
+        <b>💡 ${esc(s.name)}</b>
+        <span style="color:var(--ink-2)">${fmtD(s.total_seconds)} across ${s.items.length} block${s.items.length>1?'s':''}</span>
+        <span class="spacer"></span>
+        <button class="act" onclick="createSuggested(${si}, this)">Create project & assign history</button>
+      </div>
+      <div style="font-size:12px;color:var(--ink-2);margin-top:4px">${esc(s.reason)}</div>
+      ${s.rules.length ? `<div style="margin-top:5px;font-size:12px;color:var(--muted)">rules it would add:
+        ${s.rules.map(ru=>`<span class="chip">${esc(ru.field)} ${esc(ru.match_type)} “${esc(ru.pattern)}”</span>`).join('')}</div>` : ''}
+      <table style="margin-top:6px">
+        ${s.items.map(it => `<tr>
+          <td class="num">${fmtDT(it.start)}</td>
+          <td class="num">${fmtD(it.seconds)}</td>
+          <td>${esc(it.domain || it.app)}</td>
+          <td style="max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc((it.titles||[]).join(' | '))}">${esc(it.title)}</td></tr>`).join('')}
+      </table>
+    </div>`).join('') +
+    (r.suggestions.length > 1 ? `
+    <div class="formrow" style="margin-top:12px;border:1px dashed var(--baseline);border-radius:8px;padding:10px 12px">
+      <input id="combName" placeholder="combined project name" style="min-width:220px">
+      <button class="act" onclick="combineSuggested(this)">Combine ticked into one project</button>
+      <span style="font-size:12px;color:var(--muted)">tick two or more suggestions above that are really the same thing — their rules and history merge into a single project</span>
+    </div>` : '') +
+    `<div style="margin-top:10px;font-size:12px;color:var(--muted)">Model: ${esc(r.model)} · reviewed ${r.visits_considered} unattributed blocks · creating a project also adds its matching rules and assigns the history shown</div>`;
+}
+window.combineSuggested = async btn => {
+  const idxs = [...document.querySelectorAll('.sugsel:checked')].map(cb => +cb.value);
+  if (idxs.length < 2) { alert('Tick at least two suggestions to combine.'); return; }
+  const sel = idxs.map(i => _sugs[i]);
+  const name = ($('#combName')?.value || '').trim() || sel[0].name;
+  btn.disabled = true; btn.textContent = 'creating…';
+  try {
+    const pr = await api('/api/projects', {method:'POST', body: JSON.stringify({name})});
+    const seen = new Set();
+    for (const s of sel) for (const ru of (s.rules || [])) {
+      const key = `${ru.field}|${ru.match_type}|${ru.pattern}`;
+      if (seen.has(key)) continue; seen.add(key);
+      await api('/api/rules', {method:'POST', body: JSON.stringify({
+        kind: 'project', project_id: pr.id, field: ru.field,
+        match_type: ru.match_type, pattern: ru.pattern})});
+    }
+    const ids = [...new Set(sel.flatMap(s => s.event_ids))];
+    if (ids.length)
+      await api('/api/ai/apply', {method:'POST', body: JSON.stringify({items: [{project_id: pr.id, event_ids: ids}]})});
+    btn.textContent = `✓ created "${name}"`;
+  } catch (e) { btn.disabled = false; btn.textContent = 'failed — retry'; alert(e.message); }
+};
+window.createSuggested = async (si, btn) => {
+  const s = _sugs[si];
+  btn.disabled = true; btn.textContent = 'creating…';
+  try {
+    const pr = await api('/api/projects', {method:'POST', body: JSON.stringify({name: s.name})});
+    for (const ru of s.rules)
+      await api('/api/rules', {method:'POST', body: JSON.stringify({
+        kind: 'project', project_id: pr.id, field: ru.field,
+        match_type: ru.match_type, pattern: ru.pattern})});
+    if (s.event_ids.length)
+      await api('/api/ai/apply', {method:'POST', body: JSON.stringify({items: [{project_id: pr.id, event_ids: s.event_ids}]})});
+    btn.textContent = '✓ created';
+  } catch (e) { btn.disabled = false; btn.textContent = 'failed — retry'; alert(e.message); }
+};
+
+window.aiApply = async (pi, btn) => {
+  const p = _props[pi];
+  btn.disabled = true; btn.textContent = 'assigning…';
+  const items = p.items.map(it => ({project_id: p.project_id, event_ids: it.event_ids}));
+  await api('/api/ai/apply', {method:'POST', body: JSON.stringify({items})});
+  btn.textContent = '✓ assigned';
+};
+let visitToAssign = null;
+let editingRule = null;   // id of the rule row currently in inline-edit mode
+
+const RULE_FIELDS = [['app','app name'],['bundle','bundle id'],['domain','site domain'],['url','URL'],['title','window title'],['path','file path']];
+const RULE_MATCHES = [['contains','contains'],['prefix','starts with'],['equals','equals'],['regex','regex']];
+const optsOf = (pairs, sel) => pairs.map(([v,l]) => `<option value="${v}" ${v===sel?'selected':''}>${l}</option>`).join('');
+
+// ---- SETTINGS ---------------------------------------------------------------
+async function renderSettings() {
+  return swr('settings',
+    () => Promise.all([api('/api/rules'), api('/api/ai/models'), api('/api/settings'), projectsReady]),
+    ([rules, models, settings]) => buildSettingsHtml(rules, models, settings));
+}
+function buildSettingsHtml(rules, models, settings) {
+  const projOpts = activeProjects().map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join('');
+  const cats = [...new Set(rules.filter(r=>r.kind==='category').map(r=>r.category))];
+
+  const prow = (p, depth) => `<tr>
+      <td style="padding-left:${8 + depth * 20}px${p.archived ? ';color:var(--muted)' : ''}">${depth ? '<span style="color:var(--muted)">↳ </span>' : ''}<span class="swatch" style="background:${colorOf(p.name)};display:inline-block;margin-right:6px${p.archived ? ';opacity:.4' : ''}"></span>${esc(p.name)}${p.archived ? ' <span class="chip">📦 archived</span>' : ''}</td>
+      <td><span class="chip">${esc(p.kind)}</span></td>
+      <td style="white-space:nowrap">${pinButton(p)} <button class="ghost" title="${p.archived ? 'unarchive' : 'archive — keeps all history, hides it from lists'}" onclick="${p.archived ? 'un' : ''}archiveProject(${p.id})">${p.archived ? 'unarchive' : '📦'}</button> <button class="ghost" onclick="delProject(${p.id})">✕</button></td></tr>`;
+  const prows = projectTreeFlat(true).map(({p, depth}) => prow(p, depth)).join('');
+
+  const editCells = r => `
+      <td><select class="er-field">${optsOf(RULE_FIELDS, r.field)}</select></td>
+      <td><select class="er-match">${optsOf(RULE_MATCHES, r.match_type)}</select></td>
+      <td><input class="er-pat" value="${esc(r.pattern)}" style="min-width:220px">
+        <input type="hidden" class="er-prio" value="${r.priority}"><input type="hidden" class="er-en" value="${r.enabled?1:0}"></td>
+      <td style="white-space:nowrap"><button class="act" onclick="saveRule(${r.id},'${r.kind}')">✓ save</button> <button class="ghost" onclick="cancelEditRule()">cancel</button></td>`;
+  const editButtons = r => `<td style="white-space:nowrap"><button class="ghost" onclick="editRule(${r.id})">✎</button> <button class="ghost" onclick="delRule(${r.id})">✕</button></td>`;
+  const ruleRow = r => r.id === editingRule ? `<tr>
+      <td>${r.kind === 'project'
+        ? `<select class="er-proj">${state.projects.map(p=>`<option value="${p.id}" ${p.id===r.project_id?'selected':''}>${esc(p.name)}</option>`).join('')}</select>`
+        : `<input class="er-cat" list="catList" value="${esc(r.category||'')}" style="width:150px">`}</td>
+      ${editCells(r)}</tr>`
+    : `<tr>
+      <td>${r.kind === 'project' ? `<span class="chip" style="border-color:${colorOf(r.project_name)}">${esc(r.project_name)}</span>` : `<span class="chip">${esc(r.category)}</span>`}</td>
+      <td>${esc(r.field)}</td><td>${esc(r.match_type)}</td>
+      <td style="max-width:340px;overflow-wrap:break-word"><code style="font-size:12px">${esc(r.pattern)}</code></td>
+      ${editButtons(r)}</tr>`;
+  const projRules = rules.filter(r=>r.kind==='project').map(ruleRow).join('');
+  const catRules = rules.filter(r=>r.kind==='category').map(ruleRow).join('');
+  const aiRuleRow = r => r.id === editingRule ? `<tr>${editCells(r)}</tr>`
+    : `<tr>
+      <td>${esc(r.field)}</td><td>${esc(r.match_type)}</td>
+      <td style="max-width:340px;overflow-wrap:break-word"><code style="font-size:12px">${esc(r.pattern)}</code></td>
+      ${editButtons(r)}</tr>`;
+  const aiRules = rules.filter(r=>r.kind==='ai').map(aiRuleRow).join('');
+
+  return `
+    <div class="card"><h2>Projects, subjects & tasks</h2>
+      <div class="formrow">
+        <input id="npName" placeholder="name, e.g. Machine Learning or Assignment 3" style="min-width:220px">
+        <select id="npKind"><option value="project">project</option><option value="subject">study subject</option><option value="task">task / assignment / feature</option></select>
+        <select id="npParent">${projectOptions(null, '<option value="">no parent (top level)</option>')}</select>
+        <button class="act" onclick="addProject()">Add</button>
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Nest a task or sub-project under any project, e.g. <em>Assignment 3</em> under a course, or a <em>feature</em> under a work project. Up to ${MAX_SUBPROJECTS} sub-items per parent. Its time rolls up into the parent, and you can track or log time against it on its own page.</div>
+      <table><tr><th>Name</th><th>Kind</th><th></th></tr>${prows || '<tr><td colspan="3" class="empty">No projects yet.</td></tr>'}</table></div>
+
+    <div class="card"><h2>Project rules <span style="text-transform:none;font-weight:400;color:var(--muted)">— auto-credit matching time to a project</span></h2>
+      <div class="formrow">
+        <select id="prProject">${projOpts || '<option value="">create a project first</option>'}</select>
+        <select id="prField"><option value="url">URL</option><option value="bundle">bundle id</option><option value="domain">site domain</option><option value="title">window title</option><option value="app">app name</option><option value="path">file path</option></select>
+        <select id="prMatch"><option value="contains">contains</option><option value="prefix">starts with</option><option value="equals">equals</option><option value="regex">regex</option></select>
+        <input id="prPattern" placeholder="e.g. https://canvas.university.edu/courses/ml" style="min-width:280px">
+        <button class="act" onclick="addRule('project')">Add rule</button>
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Examples: URL starts with a course page → subject · <b>file path</b> contains a project folder (e.g. <code>~/code/acme-storefront</code>) → everything opened in that folder, including terminals working there · domain equals a project's website → project. File path rules outrank title/URL rules. Files inside a folder named exactly like a project are linked to it without a rule. Rules apply to all history.</div>
+      <div class="scroll"><table><tr><th>Project</th><th>Field</th><th>Match</th><th>Pattern</th><th></th></tr>
+        ${projRules || '<tr><td colspan="5" class="empty">No project rules yet.</td></tr>'}</table></div></div>
+
+    <div class="card"><h2>Category rules</h2>
+      <div class="formrow">
+        <input id="crCat" list="catList" placeholder="category" style="width:160px"><datalist id="catList">${cats.map(c=>`<option>${esc(c)}</option>`).join('')}</datalist>
+        <select id="crField"><option value="app">app name</option><option value="bundle">bundle id</option><option value="domain">site domain</option><option value="url">URL</option><option value="title">window title</option><option value="path">file path</option></select>
+        <select id="crMatch"><option value="contains">contains</option><option value="prefix">starts with</option><option value="equals">equals</option><option value="regex">regex</option></select>
+        <input id="crPattern" placeholder="pattern" style="min-width:220px">
+        <button class="act" onclick="addRule('category')">Add rule</button>
+      </div>
+      <div class="scroll"><table><tr><th>Category</th><th>Field</th><th>Match</th><th>Pattern</th><th></th></tr>${catRules}</table></div></div>
+
+    <div class="card"><h2>AI rules <span style="text-transform:none;font-weight:400;color:var(--muted)">— count matching time as AI usage</span></h2>
+      <div class="formrow">
+        <select id="arField"><option value="domain">site domain</option><option value="app">app name</option><option value="bundle">bundle id</option><option value="url">URL</option><option value="title">window title</option><option value="path">file path</option></select>
+        <select id="arMatch"><option value="contains">contains</option><option value="prefix">starts with</option><option value="equals">equals</option><option value="regex">regex</option></select>
+        <input id="arPattern" placeholder="e.g. huggingface.co, or an app name" style="min-width:220px">
+        <button class="act" onclick="addRule('ai')">Add AI rule</button>
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px">ChatGPT, Claude, Perplexity, Grok, Gemini, Copilot, Cursor, Antigravity, and CLI agents (Claude Code, Codex, … — in Ghostty, iTerm, Terminal, or an editor's terminal) are detected automatically. Add rules here for anything else that should count toward your AI-usage metrics — a site, an app, even a specific page title. Applies to all history.</div>
+      <div class="scroll"><table><tr><th>Field</th><th>Match</th><th>Pattern</th><th></th></tr>
+        ${aiRules || '<tr><td colspan="4" class="empty">No custom AI rules — the built-in detection is in effect.</td></tr>'}</table></div></div>
+
+    <div class="card"><h2>Time tracking</h2>
+      <div class="formrow">
+        <label style="font-size:13px">Count as active until idle for</label>
+        <input id="setAfk" type="number" min="0.5" max="60" step="0.5" value="${settings.afk_idle_minutes}" style="width:74px">
+        <span style="font-size:13px;color:var(--ink-2)">minutes</span>
+        <button class="act" onclick="saveAISettings(this)">Save</button>
+      </div>
+      <div style="font-size:12px;color:var(--muted)">How long with no keyboard, mouse, or scroll before time is billed to <b>AFK</b>. Raise it so reading a page, thinking through a quiz, or a paused lecture still counts; lower it to be stricter about away time. Playing video (and lecture audio) keeps counting past this automatically. Takes effect within a minute — no restart.</div>
+      <div class="formrow" style="margin:14px 0 0">
+        <label style="font-size:13px">Remind about unassigned blocks longer than</label>
+        <input id="setPromptMin" type="number" min="0.5" max="60" step="0.5" value="${settings.unassigned_prompt_minutes ?? 1}" style="width:74px">
+        <span style="font-size:13px;color:var(--ink-2)">minutes</span>
+        <button class="act" onclick="saveAISettings(this)">Save</button>
+      </div>
+      <div style="font-size:12px;color:var(--muted)">Quiet prompt on Overview for completed meetings and other long sessions that never got a project (Google Meet URLs don't say which project). Skip hides that block; short switches under this threshold are ignored.</div>
+      <div class="formrow" style="margin:14px 0 0">
+        <label style="font-size:13px">Distraction categories</label>
+        <input id="setDcats" value="${esc((settings.distraction_categories || []).join(', '))}" placeholder="e.g. Entertainment, Communication" style="min-width:280px">
+        <button class="act" onclick="saveAISettings(this)">Save</button>
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-top:6px">Comma-separated category names whose time shows up under <b>Top distractions</b> on the Overview tab. Applies retroactively, like every rule. Leave empty to reset to the default (Entertainment).</div>
+    </div>
+
+    <div class="card"><h2>AI & email settings</h2>
+      <div class="formrow">
+        <label style="font-size:13px">Default AI model</label>
+        <select id="setModel">${models.models.map(m =>
+          `<option value="${m.id}" ${m.id===models.selected?'selected':''}>${esc(m.label)}${m.available?'':' — needs key'}</option>`).join('')}</select>
+      </div>
+      <div class="formrow">
+        <input id="setAnthKey" type="password" placeholder="Anthropic API key ${models.models.find(m=>m.provider==='anthropic'&&m.available)?'(saved ✓ — paste to replace)':''}" style="min-width:280px">
+        <input id="setGemKey" type="password" placeholder="Gemini API key ${models.models.find(m=>m.provider==='gemini'&&m.available)?'(saved ✓ — paste to replace)':''}" style="min-width:280px">
+      </div>
+      <div class="formrow">
+        <input id="setEmailTo" type="email" value="${esc(settings.email_to || '')}" placeholder="brief email recipient" style="min-width:280px">
+        <button class="act" onclick="saveAISettings(this)">Save settings</button>
+      </div>
+      <div style="font-size:12px;color:var(--muted)">Keys are stored only in ~/.timetracker/config.json on this Mac (chmod 600).</div>
+    </div>`;
+}
+window.saveAISettings = async btn => {
+  const label = btn.textContent;   // shared by the Time-tracking + AI/email Save buttons
+  btn.disabled = true;
+  await api('/api/ai/settings', {method:'POST', body: JSON.stringify({
+    ai_model: $('#setModel').value,
+    anthropic_api_key: $('#setAnthKey').value || null,
+    gemini_api_key: $('#setGemKey').value || null,
+    email_to: $('#setEmailTo').value || null,
+    afk_idle_minutes: parseFloat($('#setAfk').value) || null,
+    unassigned_prompt_minutes: parseFloat($('#setPromptMin').value) || null,
+    distraction_categories: $('#setDcats').value.split(',').map(s=>s.trim()).filter(Boolean) })});
+  btn.disabled = false; btn.textContent = '✓ saved';
+  setTimeout(() => btn.textContent = label, 2500);
+};
+window.addProject = async () => {
+  const name = $('#npName').value.trim(); if (!name) return;
+  try { await api('/api/projects', {method:'POST', body: JSON.stringify({name, kind: $('#npKind').value, parent_id: +$('#npParent').value || null})}); }
+  catch (e) { alert(e.message); }
+  render();
+};
+window.delProject = async id => {
+  if (confirm('Delete this project? Its rules and manual assignments go with it.'))
+    { await api(`/api/projects/${id}`, {method:'DELETE'}); render(); }
+};
+window.addRule = async kind => {
+  const p = kind === 'project'
+    ? {kind, project_id: +$('#prProject').value || null, field: $('#prField').value, match_type: $('#prMatch').value, pattern: $('#prPattern').value.trim()}
+    : kind === 'ai'
+    ? {kind, field: $('#arField').value, match_type: $('#arMatch').value, pattern: $('#arPattern').value.trim()}
+    : {kind, category: $('#crCat').value.trim(), field: $('#crField').value, match_type: $('#crMatch').value, pattern: $('#crPattern').value.trim()};
+  if (!p.pattern || (kind==='project' && !p.project_id) || (kind==='category' && !p.category)) return;
+  if (p.field === 'path') p.priority = 20;   // the folder decides: beat title/URL keyword rules
+  try { await api('/api/rules', {method:'POST', body: JSON.stringify(p)}); } catch (e) { alert(e.message); }
+  render();
+};
+window.delRule = async id => { await api(`/api/rules/${id}`, {method:'DELETE'}); render(); };
+// Entering/leaving edit mode only changes which row is an editor — repaint locally.
+const settingsRepaint = () => {
+  const d = dataCache['settings'];
+  d ? paint(buildSettingsHtml(d[0], d[1], d[2])) : render();
+};
+window.editRule = id => { editingRule = id; settingsRepaint(); };
+window.cancelEditRule = () => { editingRule = null; settingsRepaint(); };
+window.saveRule = async (id, kind) => {
+  const g = s => document.querySelector(s);
+  const body = {
+    kind, field: g('.er-field').value, match_type: g('.er-match').value,
+    pattern: g('.er-pat').value.trim(),
+    priority: +g('.er-prio').value, enabled: g('.er-en').value === '1'};
+  if (body.field === 'path' && body.priority === 100) body.priority = 20;
+  if (kind === 'project') body.project_id = +g('.er-proj').value || null;
+  if (kind === 'category') body.category = g('.er-cat').value.trim();
+  if (!body.pattern || (kind==='project' && !body.project_id) || (kind==='category' && !body.category)) return;
+  try { await api(`/api/rules/${id}`, {method:'PUT', body: JSON.stringify(body)}); }
+  catch (e) { alert(e.message); return; }
+  editingRule = null; render();
+};
+
+// ---- PROJECT DETAIL -----------------------------------------------------------
+window.openProject = id => { state.projectDetail = id; state.tab = 'projects'; nav(); };
+window.closeProject = () => { state.projectDetail = null; nav(); };
+
+function dailyChartHtml(daily, color = 'var(--s1)') {
+  const max = Math.max(1, ...daily.map(d => d.seconds));
+  const cols = daily.map(d => `
+    <div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;height:120px"
+         onmousemove='showTip(event, "<div class=\\"t1\\">${d.label}</div><div class=\\"t2\\">${fmtD(d.seconds)}</div>")'
+         onmouseleave="hideTip()">
+      <div style="height:${Math.max(d.seconds ? 3 : 0, Math.round(100*d.seconds/max))}%;background:${color};border-radius:3px 3px 0 0;min-width:4px"></div>
+    </div>`).join('');
+  const labels = daily.filter((_, i) => i % Math.ceil(daily.length / 6) === 0).map(d => d.label);
+  return `<div style="display:flex;gap:3px;align-items:flex-end;border-bottom:1px solid var(--baseline);padding-bottom:1px">${cols}</div>
+    <div style="display:flex;justify-content:space-between;color:var(--muted);font-size:11px;margin-top:4px">${labels.map(l=>`<span>${l}</span>`).join('')}</div>`;
+}
+
+let liveTimer = null;
+function paintLiveTimer(timer) {
+  clearInterval(liveTimer); liveTimer = null;
+  const el = $('#timerElapsed');
+  if (!el || !timer) return;
+  const tick = () => { el.textContent = fmtD(Math.max(0, Math.round(Date.now()/1000 - timer.start_ts))); };
+  tick(); liveTimer = setInterval(tick, 1000);
+}
+
+async function renderProjectDetail() {
+  const id = state.projectDetail;
+  const rk = rangeKey();
+  return swr(`pd|${id}|${rk}`,
+    () => Promise.all([
+      api(`/api/project_detail?id=${id}&days=${RANGE_DAYS[rk]}`),
+      api('/api/timer').catch(() => null),
+      projectsReady]),
+    ([d, timer]) => buildProjectDetailHtml(d, timer),
+    ([, timer]) => paintLiveTimer(timer));
+}
+function buildProjectDetailHtml(d, timer) {
+  const t = d.totals;
+  const rk = rangeKey();
+  const rl = {all: 'all time', today: 'today', '7d': 'last 7 days', '30d': 'last 30 days'}[rk];
+  const activeChildren = d.children.filter(c => !c.archived);
+  const mtProjOpts = [{id: d.project.id, name: d.project.name}, ...activeChildren]
+    .map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join('');
+  const localToday = new Date(Date.now() - new Date().getTimezoneOffset()*60000).toISOString().slice(0,10);
+  const crumbs = d.ancestors.map(a =>
+    `<button class="ghost" onclick="openProject(${a.id})">${esc(a.name)}</button> <span style="color:var(--muted)">/</span> `).join('');
+  const runningHere = timer && timer.project_id === d.project.id;
+  const timerCard = timer
+    ? `<div class="card" style="border-color:var(--s1)"><div class="formrow" style="align-items:center">
+        <span style="font-weight:600">⏱ Tracking ${runningHere ? 'this' : `<a href="#" onclick="openProject(${timer.project_id});return false">${esc(timer.project_name)}</a>`}</span>
+        <span id="timerElapsed" style="font-variant-numeric:tabular-nums;font-size:18px;font-weight:700">0s</span>
+        <button class="act" onclick="stopTimer()">■ Stop &amp; log to ${runningHere ? 'this task' : esc(timer.project_name)}</button>
+        <span style="font-size:12px;color:var(--muted)">Stopping credits this window's real activity to ${runningHere ? 'this project' : esc(timer.project_name)}.</span>
+      </div></div>`
+    : `<div class="card"><div class="formrow" style="align-items:center">
+        <button class="act" onclick="startTimer(${d.project.id})">▶ Track this now</button>
+        <input id="tmNote" placeholder="optional note" style="min-width:200px">
+        <span style="font-size:12px;color:var(--muted)">Starts a live timer; stopping it logs the time you spend to this project.</span>
+      </div></div>`;
+  const canAdd = activeChildren.length < MAX_SUBPROJECTS;
+  const subLink = it => it.id !== d.project.id ? it.id : null;   // own "(directly)" bucket isn't clickable
+  const archivedIds = new Set(d.children.filter(c => c.archived).map(c => c.id));
+  const subItems = d.by_subproject.map(it => archivedIds.has(it.id) ? {...it, name: `📦 ${it.name}`} : it);
+  const addSubCard = `<div class="card"><h2>Sub-projects & tasks <span style="text-transform:none;font-weight:400;color:var(--muted)">(${activeChildren.length}/${MAX_SUBPROJECTS}${archivedIds.size ? ` · ${archivedIds.size} archived` : ''})</span></h2>
+      ${subItems.length ? barRows(subItems, colorOf, subLink) : '<div class="empty">No sub-projects yet — add one below to track a task, assignment, or feature under this project.</div>'}
+      <div class="formrow" style="margin-top:10px">
+        ${canAdd
+          ? `<input id="spName" placeholder="e.g. Assignment 3, or a feature name" style="min-width:220px">
+             <select id="spKind"><option value="task">task / assignment</option><option value="subject">study subject</option><option value="project">sub-project</option></select>
+             <button class="act" onclick="addSubproject(${d.project.id})">Add sub-item</button>`
+          : `<span style="font-size:12px;color:var(--muted)">Max ${MAX_SUBPROJECTS} sub-items reached. Remove one in Rules &amp; Settings to add another.</span>`}
+      </div></div>`;
+  const mRows = d.manual_entries.map(m => `<tr>
+      <td class="num">${fmtDT(m.start_ts)} → ${fmtT(m.end_ts)}</td>
+      <td class="num">${fmtD(m.end_ts - m.start_ts)}</td>
+      <td><span class="chip">${esc(m.project_name)}</span></td>
+      <td>${esc(m.note || '')}</td>
+      <td><button class="ghost" onclick="delManual(${m.id})">✕</button></td>
+    </tr>`).join('');
+  const sessRows = d.sessions.map(x => {
+    const m = x.metrics;
+    return `<tr style="cursor:pointer" onclick="openSession(${x.id})" title="click for the full breakdown"><td class="num">${fmtDT(x.start_ts)}</td>
+      <td>${esc(x.label || '')} <span style="color:var(--muted);font-size:11px">›</span></td>
+      <td class="num">${fmtD(m.duration_seconds)}</td>
+      <td class="num">${m.focus_pct !== null ? m.focus_pct + '% focused' : '—'}</td>
+      <td class="num" title="${fmtD(m.ai_seconds)} AI-assisted">${m.ai_pct !== null ? m.ai_pct + '% AI' : '—'}</td></tr>`;
+  }).join('');
+
+  return `
+    <div class="formrow" style="flex-wrap:wrap"><button class="ghost" onclick="closeProject()">← All projects</button>
+      ${crumbs}
+      <h1 style="font-size:16px"><span class="swatch" style="background:${colorOf(d.project.name)};display:inline-block;margin-right:8px"></span>${esc(d.project.name)}</h1>
+      <span class="chip">${esc(d.project.kind)}</span>${d.project.archived ? '<span class="chip">📦 archived</span>' : ''}
+      <span class="spacer"></span>
+      <button class="ghost" title="${d.project.pinned ? 'stop showing it first' : 'show it first in every project list'}" onclick="togglePin(${d.project.id}, ${!d.project.pinned})">${d.project.pinned ? '📌 Unpin' : '📌 Pin'}</button>
+      <button class="ghost" title="${d.project.archived ? 'bring it back into the main lists' : 'keeps all history and totals; hides it from the main lists'}"
+        onclick="${d.project.archived ? 'un' : ''}archiveProject(${d.project.id})">${d.project.archived ? 'Unarchive' : '📦 Archive'}</button></div>
+    ${timerCard}
+    ${addSubCard}
+    <div class="tiles">
+      ${[['all', 'All time'], ['month', 'Last 30 days'], ['week', 'Last 7 days'], ['today', 'Today']].map(([k, l]) =>
+        `<div class="tile"${k === REPORT_FIELD[rk] ? ' style="border-color:var(--s1)"' : ''}><div class="l">${l}</div><div class="v">${fmtD(t[k])}</div></div>`).join('')}
+      <div class="tile"><div class="l">AI share (${rl})</div><div class="v">${d.ai.pct !== null ? d.ai.pct + '%' : '—'}</div><div class="sub">${fmtD(d.ai.seconds)} AI-assisted</div></div>
+    </div>
+    <div class="card"><h2>Daily time — ${rl}</h2>${dailyChartHtml(d.daily, colorOf(d.project.name))}</div>
+    <div class="grid2">
+      <div class="card"><h2>By app <span class="rl">· ${rl}</span></h2>${barRows(d.by_app, colorOf)}</div>
+      <div class="card"><h2>By site <span class="rl">· ${rl}</span></h2>${barRows(d.by_domain, colorOf)}</div>
+      <div class="card"><h2>By category <span class="rl">· ${rl}</span></h2>${barRows(d.by_category, colorOf)}</div>
+      ${d.ai.by_tool.length ? `<div class="card"><h2>AI tools on this project <span class="rl">· ${rl}</span></h2>${barRows(d.ai.by_tool, () => 'var(--s5)')}
+        <div style="font-size:11px;color:var(--muted);margin-top:6px">${d.ai.pct !== null ? d.ai.pct + '% of' : 'Share of'} this project's tracked time (${rl}) was AI-assisted.</div></div>` : ''}
+    </div>
+    <div class="card"><h2>Top pages & files <span class="rl">· ${rl}</span></h2>${barRows(d.by_title, () => 'var(--s1)')}</div>
+    <div class="card"><h2>Focus sessions on this project</h2>
+      <div class="scroll"><table><tr><th>When</th><th>Label</th><th>Length</th><th>Focus</th><th>AI</th></tr>
+      ${sessRows || '<tr><td colspan="5" class="empty">No sessions yet — start one from the Sessions tab.</td></tr>'}</table></div></div>
+    <div class="card"><h2>Logged time — work done elsewhere</h2>
+      <div class="formrow">
+        ${d.children.length ? `<select id="mtProject">${mtProjOpts}</select>` : `<select id="mtProject" style="display:none">${mtProjOpts}</select>`}
+        <input type="date" id="mtDate" value="${localToday}">
+        <input type="time" id="mtTime" value="09:00">
+        <input type="number" id="mtHours" min="0.25" step="0.25" value="1" style="width:74px" title="hours">
+        <span style="font-size:12px;color:var(--muted)">hours</span>
+        <input id="mtNote" placeholder="note, e.g. studied on the other PC" style="min-width:210px">
+        <button class="act" onclick="addManualTime()">Log time</button>
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Adds straight to this project's totals — for work done on another computer or away from the keyboard. Avoid overlapping time this Mac already tracked, or it counts twice.</div>
+      <div class="scroll"><table>
+        <tr><th>When</th><th>Length</th><th>Project</th><th>Note</th><th></th></tr>
+        ${mRows || '<tr><td colspan="5" class="empty">Nothing logged manually yet.</td></tr>'}
+      </table></div></div>`;
+}
+window.startTimer = async pid => {
+  const note = $('#tmNote')?.value.trim() || null;
+  try { await api('/api/timer/start', {method:'POST', body: JSON.stringify({project_id: pid, note})}); }
+  catch (e) { alert(e.message); }
+  render();
+};
+window.stopTimer = async () => {
+  try {
+    const r = await api('/api/timer/stop', {method:'POST'});
+    if (!r.assignment_id) alert('Timer was too short to log.');
+  } catch (e) { alert(e.message); }
+  render();
+};
+window.addSubproject = async pid => {
+  const name = $('#spName')?.value.trim(); if (!name) return;
+  try { await api('/api/projects', {method:'POST', body: JSON.stringify({
+    name, kind: $('#spKind').value, parent_id: pid})}); }
+  catch (e) { alert(e.message); return; }
+  render();
+};
+window.addManualTime = async () => {
+  const date = $('#mtDate').value, time = $('#mtTime').value || '12:00';
+  const hours = parseFloat($('#mtHours').value);
+  if (!date || !(hours > 0)) { alert('Pick a date and a number of hours.'); return; }
+  const start = new Date(`${date}T${time}`).getTime() / 1000;
+  await api('/api/manual_entries', {method:'POST', body: JSON.stringify({
+    project_id: +$('#mtProject').value, start_ts: start, end_ts: start + hours*3600,
+    note: $('#mtNote').value || null})});
+  render();
+};
+window.delManual = async id => {
+  if (!confirm('Remove this logged time?')) return;
+  await api(`/api/manual_entries/${id}`, {method:'DELETE'}); render();
+};
+
+// ---- ASK — chat about your usage, saved locally ------------------------------
+let askThread = null, askBusy = false, askPending = null, askError = null;
+const askKey = () => `ask|${askThread || 'new'}`;
+const ASK_STARTERS = [
+  'What am I best at, based on my last 30 days?',
+  'Where does my time actually go? Any bad habits?',
+  'How focused am I, and how do I get more deep work?',
+  'Suggest business ideas that fit my demonstrated skills.',
+];
+// Minimal markdown for chat replies: escapes first, then code/bold/bullets/paragraphs.
+function mdLite(t) {
+  let h = esc(t);
+  h = h.replace(/```\w*\n?([\s\S]*?)```/g, (_, c) => `<pre><code>${c.replace(/\n$/, '')}</code></pre>`);
+  h = h.replace(/`([^`\n]+)`/g, '<code>$1</code>');
+  h = h.replace(/\*\*([^*\n]+)\*\*/g, '<b>$1</b>');
+  h = h.replace(/^#{1,4} (.+)$/gm, '<b>$1</b>');
+  h = h.replace(/(?:^|\n)((?:[-*] .*(?:\n|$))+)/g, (_, b) =>
+    '\n<ul>' + b.trim().split('\n').map(l => `<li>${l.replace(/^[-*] /, '')}</li>`).join('') + '</ul>');
+  return h.split(/\n{2,}/).map(p => /^<(ul|pre)/.test(p.trim()) ? p : `<p>${p.trim().replace(/\n/g, '<br>')}</p>`).join('');
+}
+const scrollAsk = () => { const el = $('#askMsgs'); if (el) el.scrollTop = el.scrollHeight; };
+
+async function renderAsk() {
+  const tid = askThread;
+  return swr(askKey(),
+    () => Promise.all([
+      api('/api/chat/threads'),
+      tid ? api(`/api/chat/threads/${tid}`).catch(() => null) : Promise.resolve(null),
+      api('/api/ai/models')]),
+    ([threads, thread, models]) => buildAskHtml(threads, thread, models),
+    scrollAsk);
+}
+function buildAskHtml(threads, thread, models) {
+  const msgs = thread ? thread.messages : [];
+  const bubbles = msgs.map(m => m.role === 'user'
+    ? `<div class="msg user">${esc(m.content)}</div>`
+    : `<div class="msg ai">${mdLite(m.content)}</div>`).join('');
+  const pending = askPending ? `<div class="msg user">${esc(askPending)}</div>
+    <div class="msg ai"><span class="typing"><i></i><i></i><i></i></span></div>` : '';
+  const chips = (!msgs.length && !askPending) ? `
+    <div class="empty" style="padding-top:0">Ask anything about your own tracked time — strengths, habits, focus, what to build next. Chats stay in your local database.</div>
+    <div class="askchips">${ASK_STARTERS.map(q => `<button class="ghost" onclick="askStarter(this)">${esc(q)}</button>`).join('')}</div>` : '';
+  const modelOpts = models.models.map(m =>
+    `<option value="${m.id}" ${m.id === models.selected ? 'selected' : ''} ${m.available ? '' : 'disabled'}>${esc(m.label)}${m.available ? '' : ' — needs key'}</option>`).join('');
+  const tbtns = threads.map(t =>
+    `<button class="${t.id === askThread ? 'on' : ''}" onclick="openAskThread(${t.id})" title="${esc(t.title)}">${esc(t.title)}</button>`).join('');
+  return `
+    <div class="askwrap">
+      <div class="card askthreads">
+        <button class="${!askThread ? 'on' : ''}" onclick="openAskThread(null)">＋ New chat</button>
+        ${tbtns || '<div class="empty" style="padding:6px 9px">No saved chats yet.</div>'}
+        ${askThread ? `<button onclick="delAskThread(${askThread})" style="color:var(--s6)">✕ Delete this chat</button>` : ''}
+      </div>
+      <div class="card">
+        <h2>Ask about your usage</h2>
+        ${chips}
+        <div id="askMsgs">${bubbles}${pending}</div>
+        ${askError ? `<div class="empty" style="color:var(--s6)">Failed: ${esc(askError)}</div>` : ''}
+        <div class="formrow" style="margin:12px 0 0;align-items:flex-end">
+          <textarea id="askInput" rows="2" placeholder="e.g. What am I spending too much time on?"
+            onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat();}"></textarea>
+          <select id="askModel" title="model">${modelOpts}</select>
+          <button class="act" id="askSend" onclick="sendChat()" ${askBusy ? 'disabled' : ''}>Ask</button>
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-top:6px">The model sees a summary of your tracked time (totals, top apps/sites/projects, rhythm — not your raw history). Chats are saved only in ~/.timetracker on this Mac.</div>
+      </div>
+    </div>`;
+}
+const paintAsk = () => {
+  const d = dataCache[askKey()];
+  if (d) { paint(buildAskHtml(d[0], d[1], d[2])); scrollAsk(); }
+};
+window.openAskThread = id => { askThread = id; askError = null; nav(); };
+window.delAskThread = async id => {
+  if (!confirm("Delete this chat? This can't be undone.")) return;
+  await api(`/api/chat/threads/${id}`, {method: 'DELETE'});
+  delete dataCache[`ask|${id}`]; delete dataCache['ask|new'];
+  askThread = null; nav();
+};
+window.askStarter = btn => { const ta = $('#askInput'); if (ta) ta.value = btn.textContent; sendChat(); };
+window.sendChat = async () => {
+  const ta = $('#askInput');
+  const msg = ta ? ta.value.trim() : '';
+  if (!msg || askBusy) return;
+  const model = $('#askModel') ? $('#askModel').value : null;
+  askBusy = true; askPending = msg; askError = null;
+  paintAsk();                                    // optimistic bubble + typing dots
+  try {
+    const r = await api('/api/chat', {method: 'POST',
+      body: JSON.stringify({thread_id: askThread, message: msg, model})});
+    askBusy = false; askPending = null;
+    delete dataCache['ask|new']; delete dataCache[`ask|${r.thread_id}`];
+    askThread = r.thread_id;
+    nav();                                       // routes to #/ask/<id>, loads the saved thread
+  } catch (e) {
+    askBusy = false; askPending = null; askError = e.message;
+    paintAsk();
+  }
+};
+
+// ---- root -------------------------------------------------------------------
+// Stale-while-revalidate rendering. Each tab is split into a fetch and a pure
+// build(data) → html function; swr() paints the last-known data instantly when
+// NAVIGATING to a view (tab/range switch), then refetches and repaints only if
+// the HTML actually changed. Re-renders of the view already on screen (after a
+// mutation, or the 60s auto-refresh) skip the stale paint — the current DOM is
+// fresher than the cache — so old state never flashes back. paint() never
+// touches the DOM when the HTML is identical, which kills refresh flicker.
+// Build fns must derive everything from (data + module state) and (re)install
+// any window._* vars their inline handlers index into, so a stale paint is
+// always internally consistent with what's clickable.
+const dataCache = {};
+let renderSeq = 0, paintedKey = null, lastViewHtml = '';
+let projectsReady = Promise.resolve();
+
+// Persist the (small) cached data to localStorage so reopening the app paints
+// the last-known dashboard instantly, then revalidates. Activity (~800KB) and
+// chat data are skipped; stale date-keyed overview entries are pruned.
+const LS_KEY = 'tt_swr_v1';
+try {
+  const saved = JSON.parse(localStorage.getItem(LS_KEY) || 'null');
+  if (saved && saved.ts && Date.now() - saved.ts < 3 * 86400e3) Object.assign(dataCache, saved.entries);
+} catch {}
+let persistTimer = null;
+function persistCache() {
+  clearTimeout(persistTimer);
+  persistTimer = setTimeout(() => {
+    try {
+      const liveOverviewKeys = new Set(rangesFor('overview').map(r => `overview|${r.key}|${r.get()[0]}`));
+      const entries = {};
+      for (const [k, v] of Object.entries(dataCache)) {
+        if (k.startsWith('activity|') || k.startsWith('ask|')) continue;
+        if (k.startsWith('overview|') && !liveOverviewKeys.has(k)) continue;
+        entries[k] = v;
+      }
+      const s = JSON.stringify({ts: Date.now(), entries});
+      if (s.length < 4e6) localStorage.setItem(LS_KEY, s);
+    } catch {}
+  }, 1000);
+}
+
+// opts.nav: this paint is a view navigation — crossfade (where supported) and
+// scroll to top. opts.then: run after the DOM is actually written (transitions
+// write asynchronously); runs even when the write is skipped as identical,
+// because callers like paintLiveTimer must re-arm timers cleared by render().
+function paint(html, opts = {}) {
+  if (html === lastViewHtml) { if (opts.then) opts.then(); return; }
+  lastViewHtml = html;
+  const write = () => {
+    $('#view').innerHTML = html;
+    if (opts.nav) scrollTo(0, 0);
+    if (opts.then) opts.then();
+  };
+  if (opts.nav && document.startViewTransition) document.startViewTransition(write);
+  else write();
+}
+async function swr(key, fetchFn, buildFn, afterFn) {
+  const seq = renderSeq;
+  const cached = dataCache[key];
+  if (cached !== undefined && paintedKey !== key) {
+    paintedKey = key;
+    paint(buildFn(cached), {nav: true, then: afterFn ? () => afterFn(cached) : null});
+  }
+  const data = await fetchFn();
+  dataCache[key] = data;
+  persistCache();
+  if (seq !== renderSeq) return {key, html: lastViewHtml, after: null};  // superseded; skip build side effects
+  return {key, html: buildFn(data), after: afterFn ? () => afterFn(data) : null};
+}
+
+// After the first paint, quietly pre-warm the other ranges + the projects
+// report (one at a time, spaced out) so even a first-time range switch or tab
+// hop paints instantly. Runs once per page load.
+let prefetched = false;
+function prefetchRanges() {
+  if (prefetched) return;
+  prefetched = true;
+  const jobs = [];
+  for (const r of rangesFor('overview')) {
+    const [s, e] = r.get();
+    const key = `overview|${r.key}|${s}`;
+    if (!dataCache[key]) jobs.push(() =>
+      Promise.all([api(`/api/overview?start=${s}&end=${e}`), api('/api/heatmap?weeks=4')])
+        .then(d => { dataCache[key] = d; persistCache(); }));
+  }
+  if (!dataCache['projects']) jobs.push(() =>
+    api('/api/project_report').then(rep => { dataCache['projects'] = [rep]; persistCache(); }));
+  (function next() {
+    const j = jobs.shift();
+    if (j) j().catch(() => {}).then(() => setTimeout(next, 300));
+  })();
+}
+async function render() {
+  const seq = ++renderSeq;
+  renderHeader();
+  clearTimeout(sessionTimer);
+  clearInterval(liveTimer);
+  projectsReady = api('/api/projects').then(p => { state.projects = p; }).catch(() => {});
+  try {
+    const out = await (
+      state.tab === 'projects' ? (state.projectDetail ? renderProjectDetail() : renderProjects())
+      : state.tab === 'overview' ? renderOverview()
+      : state.tab === 'sessions' ? (state.sessionDetail ? renderSessionDetail() : renderSessions())
+      : state.tab === 'activity' ? renderActivity()
+      : state.tab === 'ask' ? renderAsk()
+      : renderSettings());
+    if (seq !== renderSeq) return;      // superseded by a newer render
+    paint(out.html, {nav: paintedKey !== out.key, then: out.after});
+    paintedKey = out.key;
+    setTimeout(prefetchRanges, 1200);
+  } catch (e) {
+    if (seq !== renderSeq) return;
+    paint(`<div class="card empty">Failed to load: ${esc(e.message)}</div>`);
+    paintedKey = null;
+  }
+}
+parseHash();
+render();
+// Live refresh: overview + project pages, when visible and not mid-typing, so
+// numbers keep up as time is tracked. Activity/Settings are skipped — they hold
+// forms and selections a refresh would wipe.
+setInterval(() => {
+  if (document.hidden) return;
+  const tag = document.activeElement && document.activeElement.tagName;
+  if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
+  if (state.tab === 'overview' || state.tab === 'projects') render();
+}, 60000);
+</script>
+</body>
+</html>

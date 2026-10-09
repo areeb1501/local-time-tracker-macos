@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 320" width="1200" height="320" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0f1115"/>
+      <stop offset="1" stop-color="#1f2430"/>
+    </linearGradient>
+    <linearGradient id="bar" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#2a78d6"/>
+      <stop offset="1" stop-color="#5a9be6"/>
+    </linearGradient>
+    <linearGradient id="ai" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#d97757"/>
+      <stop offset="1" stop-color="#f4a77f"/>
+    </linearGradient>
+    <style>
+      .grow { transform-box: fill-box; transform-origin: bottom; animation: grow 3.2s cubic-bezier(.2,.8,.2,1) infinite alternate; }
+      @keyframes grow { 0% { transform: scaleY(.15) } 60%,100% { transform: scaleY(1) } }
+      .hand { transform-origin: 1080px 130px; animation: spin 6s linear infinite; }
+      .hand2 { transform-origin: 1080px 130px; animation: spin 72s linear infinite; }
+      @keyframes spin { to { transform: rotate(360deg) } }
+      .pulse { animation: pulse 1.6s ease-in-out infinite; }
+      @keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: .25 } }
+      .ring { transform-origin: 74px 268px; animation: ring 1.6s ease-out infinite; }
+      @keyframes ring { 0% { transform: scale(1); opacity: .6 } 100% { transform: scale(2.6); opacity: 0 } }
+      .fade { animation: fade 1s ease-out both; }
+      .d1 { animation-delay: .15s } .d2 { animation-delay: .3s } .d3 { animation-delay: .45s }
+      @keyframes fade { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: none } }
+      .cursor { animation: blink 1s steps(1) infinite; }
+      @keyframes blink { 50% { opacity: 0 } }
+    </style>
+  </defs>
+  <rect width="1200" height="320" rx="18" fill="url(#bg)"/>
+  <g opacity=".07" stroke="#fff">
+    <path d="M0 80H1200M0 160H1200M0 240H1200"/>
+  </g>
+
+  <text x="56" y="96" font-size="54" font-weight="800" fill="#fff" class="fade">Local Time Tracker</text>
+  <text x="58" y="134" font-size="21" fill="#c3c8d2" class="fade d1">Fully local. Runs in the background in ~15 MB.</text>
+  <text x="58" y="162" font-size="21" fill="#c3c8d2" class="fade d1">Files time into projects — and shows how much of it was AI.</text>
+
+  <g class="fade d2" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="18">
+    <rect x="56" y="184" width="560" height="46" rx="10" fill="#0f172a" stroke="#334155"/>
+    <text x="76" y="213" fill="#94a3b8">$</text>
+    <text x="96" y="213" fill="#e2e8f0">curl -fsSL …/install.sh | bash</text>
+    <rect x="408" y="198" width="10" height="20" fill="#e2e8f0" class="cursor"/>
+  </g>
+
+  <g class="fade d3" font-size="17">
+    <circle cx="74" cy="268" r="7" fill="#22c55e" class="ring"/>
+    <circle cx="74" cy="268" r="7" fill="#22c55e"/>
+    <text x="92" y="274" fill="#cbd5e1">tracking  ·  127.0.0.1:8321  ·  your data never leaves your Mac</text>
+  </g>
+
+  <!-- weekly bars: human vs AI-assisted -->
+  <g transform="translate(700 50) scale(.92)">
+    <g class="grow" style="animation-delay:0s"><rect x="0"   y="60"  width="22" height="140" rx="5" fill="url(#bar)"/><rect x="0"   y="130" width="22" height="70" rx="5" fill="url(#ai)"/></g>
+    <g class="grow" style="animation-delay:.12s"><rect x="34"  y="30"  width="22" height="170" rx="5" fill="url(#bar)"/><rect x="34"  y="120" width="22" height="80" rx="5" fill="url(#ai)"/></g>
+    <g class="grow" style="animation-delay:.24s"><rect x="68"  y="80"  width="22" height="120" rx="5" fill="url(#bar)"/><rect x="68"  y="150" width="22" height="50" rx="5" fill="url(#ai)"/></g>
+    <g class="grow" style="animation-delay:.36s"><rect x="102" y="20"  width="22" height="180" rx="5" fill="url(#bar)"/><rect x="102" y="105" width="22" height="95" rx="5" fill="url(#ai)"/></g>
+    <g class="grow" style="animation-delay:.48s"><rect x="136" y="50"  width="22" height="150" rx="5" fill="url(#bar)"/><rect x="136" y="128" width="22" height="72" rx="5" fill="url(#ai)"/></g>
+    <g class="grow" style="animation-delay:.60s"><rect x="170" y="140" width="22" height="60"  rx="5" fill="url(#bar)"/><rect x="170" y="176" width="22" height="24" rx="5" fill="url(#ai)"/></g>
+    <g class="grow" style="animation-delay:.72s"><rect x="204" y="160" width="22" height="40"  rx="5" fill="url(#bar)"/><rect x="204" y="188" width="22" height="12" rx="5" fill="url(#ai)"/></g>
+    <g font-size="13" fill="#94a3b8">
+      <rect x="0" y="222" width="10" height="10" rx="2" fill="#3f88dc"/><text x="16" y="231">your time</text>
+      <rect x="100" y="222" width="10" height="10" rx="2" fill="#e38a66"/><text x="116" y="231">AI-assisted</text>
+    </g>
+  </g>
+
+  <!-- clock -->
+  <g>
+    <circle cx="1080" cy="130" r="62" fill="none" stroke="#5a9be6" stroke-opacity=".3" stroke-width="3"/>
+    <circle cx="1080" cy="130" r="62" fill="none" stroke="#5a9be6" stroke-width="3" stroke-dasharray="402" stroke-dashoffset="402">
+      <animate attributeName="stroke-dashoffset" values="402;0" dur="6s" repeatCount="indefinite"/>
+    </circle>
+    <line class="hand2" x1="1080" y1="130" x2="1080" y2="96" stroke="#e2e8f0" stroke-width="5" stroke-linecap="round"/>
+    <line class="hand" x1="1080" y1="130" x2="1080" y2="80" stroke="#f4a77f" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="1080" cy="130" r="5" fill="#fff"/>
+    <text x="1080" y="222" text-anchor="middle" font-size="15" fill="#c3c8d2">every 3 seconds</text>
+    <circle cx="1124" cy="40" r="5" fill="#22c55e" class="pulse"/>
+    <text x="1112" y="45" text-anchor="end" font-size="13" fill="#94a3b8">macOS</text>
+  </g>
+</svg>

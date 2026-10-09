@@ -85,10 +85,32 @@ sync_weekly() {
   return 0
 }
 
+# Is something else (an older copy, another install) already using our data dir or port?
+# Prints the reason and returns 0 if so. Never touches the other process.
+conflicts() {
+  local pid ours reason=""
+  pid=$(lsof -nP -iTCP:"$PORT" -sTCP:LISTEN -t 2>/dev/null | head -1)
+  ours=$(running "$LABEL.dashboard")
+  [[ -n $pid && $pid != "$ours" ]] && reason="port $PORT is already used by another program (pid $pid)"
+  if [[ -z $(running "$LABEL.collector") && -f "$DATA/collector.lock" ]] && \
+     ! "$PY" -c 'import fcntl,sys; fcntl.flock(open(sys.argv[1],"a"), fcntl.LOCK_EX|fcntl.LOCK_NB)' "$DATA/collector.lock" 2>/dev/null; then
+    reason="${reason:+$reason; }another tracker is already recording into $DATA"
+  fi
+  [[ -n $reason ]] && { print -r -- "$reason"; return 0; }
+  return 1
+}
+
 running() { launchctl list 2>/dev/null | awk -v l="$1" '$3==l && $1!="-"{print $1}' }
 up()      { curl -s -o /dev/null -m 2 "http://127.0.0.1:$PORT/" }
 
 do_start() {
+  local why
+  if why=$(conflicts); then
+    echo "${R}●${X} not starting: $why."
+    echo "  ${D}Your existing tracker and its data are untouched. To run this copy side by side:${X}"
+    echo "  ${D}  TT_HOME=~/.timetracker-2 TT_PORT=8322 TT_LABEL=io.github.localtimetracker2 tt start${X}"
+    return 1
+  fi
   render_plists
   local a
   for a in $AGENTS; do
@@ -107,7 +129,7 @@ case "$1" in
   setup|onboard|init)
     shift
     mod onboard "$@" || exit $?
-    [[ " $* " == *" --no-start "* ]] || do_start
+    [[ " $* " == *" --no-start "* ]] || do_start || true
     ;;
   config|settings|set)
     [[ $1 == set ]] || shift
@@ -119,6 +141,7 @@ case "$1" in
     esac
     sync_weekly;;
   start)   do_start;;
+  _conflicts) conflicts;;
   stop)
     for a in $AGENTS; do launchctl bootout "gui/$U/$a" 2>/dev/null; done
     echo "stopped — no tracking until ${B}tt start${X}";;

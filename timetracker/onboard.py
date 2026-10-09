@@ -142,7 +142,7 @@ def section_email(cfg, n="", force=False):
     cfg["email_to"] = ask("Send briefs to", cfg.get("email_to", ""))
     cfg["email_from"] = ask("Send from (a verified Resend sender)",
                             cfg.get("email_from", "Time Tracker <onboarding@resend.dev>"))
-    cfg["weekly_email"] = confirm("Email me a weekly brief every Monday 8am?", cfg.get("weekly_email", True))
+    cfg["weekly_email"] = confirm("Email me a weekly brief every Monday 8am?", cfg.get("weekly_email", not ASSUME_YES))
     if cfg.get("resend_api_key") and cfg.get("email_to") and confirm("Send a test email now?", not ASSUME_YES):
         ai_categorize.save_config(cfg)
         test_email()

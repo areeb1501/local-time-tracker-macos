@@ -62,9 +62,31 @@ fi
 ok "dependencies installed ${d}(FastAPI, uvicorn, pyobjc — in a private venv)${x}"
 
 chmod +x "$APP/bin/tt"
+DATA="${TT_HOME:-$HOME/.timetracker}"
+
+# 1) Existing data is never replaced: setup only adds what's missing.
+#    Take a backup first anyway.
+if [[ -f "$DATA/events.db" ]]; then
+  mkdir -p "$DATA/backups"
+  BK="$DATA/backups/events-$(date +%Y%m%d-%H%M%S).db"
+  if command -v sqlite3 >/dev/null && sqlite3 "$DATA/events.db" ".backup '$BK'" 2>/dev/null; then
+    ok "existing data found in $DATA — kept as-is, backup at ${d}$BK${x}"
+  else
+    cp "$DATA/events.db" "$BK" && ok "existing data found in $DATA — kept as-is, backup at ${d}$BK${x}"
+  fi
+fi
+
+# 2) Never take over a `tt` that isn't ours (e.g. an older copy in ~/bin).
+CMD=tt
+EXISTING="$(command -v tt 2>/dev/null || true)"
+if [[ -n "$EXISTING" && "$(readlink "$EXISTING" 2>/dev/null)" != "$APP/bin/tt" ]] || \
+   { [[ -e "$BIN/tt" ]] && [[ "$(readlink "$BIN/tt")" != "$APP/bin/tt" ]]; }; then
+  CMD=ltt
+  say "  ${d}a different 'tt' command already exists (${EXISTING:-$BIN/tt}) — leaving it alone${x}"
+fi
 mkdir -p "$BIN"
-ln -sf "$APP/bin/tt" "$BIN/tt"
-ok "command ${b}tt${x} → $BIN/tt"
+ln -sfn "$APP/bin/tt" "$BIN/$CMD"
+ok "command ${b}$CMD${x} → $BIN/$CMD"
 case ":$PATH:" in
   *":$BIN:"*) ;;
   *) RC="$HOME/.zshrc"; [[ "${SHELL:-}" == */bash ]] && RC="$HOME/.bash_profile"
@@ -72,9 +94,17 @@ case ":$PATH:" in
      say "  ${d}added ~/.local/bin to PATH in $RC — open a new terminal (or: export PATH=\"\$HOME/.local/bin:\$PATH\")${x}";;
 esac
 
-# Onboarding (reads answers from the terminal even when piped through curl)
+# 3) Never start a second tracker next to one that's already running.
 ARGS=()
+if WHY="$("$APP/bin/tt" _conflicts)"; then
+  say "  ${r}!${x} $WHY"
+  say "  ${d}Installed, but not started — your current tracker keeps running untouched.${x}"
+  ARGS+=(--no-start)
+fi
+
+# Onboarding (reads answers from the terminal even when piped through curl)
 [[ -n "${TT_YES:-}" ]] && ARGS+=(--yes)
 [[ -n "${TT_NO_START:-}" ]] && ARGS+=(--no-start)
 if [[ -z "${TT_YES:-}" ]] && ! { : </dev/tty; } 2>/dev/null; then ARGS+=(--yes); fi
 "$APP/bin/tt" setup "${ARGS[@]+"${ARGS[@]}"}"
+[[ $CMD == tt ]] || say "  ${d}Use ${x}${b}$CMD${x}${d} wherever the docs say tt (e.g. $CMD open, $CMD config).${x}"

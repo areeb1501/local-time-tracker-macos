@@ -239,6 +239,8 @@ TT_HOME=/tmp/tt-dev TT_PORT=8399 .venv/bin/python -m timetracker.dashboard
 
 **Windows or Linux?** Not yet. It's macOS only.
 
+**Is it safe to run the installer again, or over an existing install?** Yes. Existing data is never replaced; it's backed up to `~/.timetracker/backups/` first. If a tracker is already running, the new copy installs but won't start a second one. If a different `tt` command already exists, it installs as `ltt` instead.
+
 **How do I remove it?** Run `tt uninstall`. Your data stays in `~/.timetracker` until you delete it.
 
 ---
